@@ -315,7 +315,7 @@ public class CategoryManagerJDialog extends javax.swing.JDialog implements Categ
     private void tblCategoriesMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_tblCategoriesMouseClicked
         // TODO add your handling code here:
         if (evt.getClickCount() == 2) {
-            this.edit();
+            this.edit(); // edit() sẽ tự lấy dòng đang chọn, setForm, setEditable, chuyển tab
         }
     }//GEN-LAST:event_tblCategoriesMouseClicked
 
@@ -392,10 +392,13 @@ public class CategoryManagerJDialog extends javax.swing.JDialog implements Categ
 
     @Override
     public void edit() {
-        Category entity = items.get(tblCategories.getSelectedRow());
-        this.setForm(entity);
-        this.setEditable(true);
-        tabs.setSelectedIndex(1);
+        int row = tblCategories.getSelectedRow();
+        if (row >= 0 && items != null && row < items.size()) {
+            Category entity = items.get(row);
+            setForm(entity);
+            setEditable(true);
+            tabs.setSelectedIndex(1);
+        }
     }
 
     @Override
@@ -416,13 +419,30 @@ public class CategoryManagerJDialog extends javax.swing.JDialog implements Categ
 
     @Override
     public void deleteCheckedItems() {
-        if (XDialog.confirm("Bạn thực sự muốn xóa các mục chọn?")) {
+        int cnt = 0;
+        for (int i = 0; i < tblCategories.getRowCount(); i++) {
+            if ((Boolean) tblCategories.getValueAt(i, 2)) {
+                cnt++;
+            }
+        }
+        if (cnt == 0) {
+            XDialog.alert("Vui lòng chọn ít nhất một loại để xóa!");
+            return;
+        }
+        if (XDialog.confirm("Bạn thực sự muốn xóa " + cnt + " mục chọn?")) {
+            int deleted = 0;
             for (int i = 0; i < tblCategories.getRowCount(); i++) {
                 if ((Boolean) tblCategories.getValueAt(i, 2)) {
-                    dao.deleteById(items.get(i).getId());
+                    try {
+                        dao.deleteById(items.get(i).getId());
+                        deleted++;
+                    } catch (Exception ex) {
+                        XDialog.error("Lỗi khi xóa mã: " + items.get(i).getId() + " - " + ex.getMessage());
+                    }
                 }
             }
             this.fillToTable();
+            XDialog.success("Đã xóa " + deleted + " loại!");
         }
     }
 
@@ -440,28 +460,72 @@ public class CategoryManagerJDialog extends javax.swing.JDialog implements Categ
         return entity;
     }
 
+    private boolean validateCategory(Category entity) {
+        if (entity.getId() == null || entity.getId().isBlank()) {
+            XDialog.warning("Mã loại không được để trống!");
+            txtId.requestFocus();
+            return false;
+        }
+        if (entity.getName() == null || entity.getName().isBlank()) {
+            XDialog.warning("Tên loại không được để trống!");
+            txtName.requestFocus();
+            return false;
+        }
+        return true;
+    }
+
+    private boolean isDuplicateId(String id) {
+        return dao.findById(id) != null;
+    }
+
     @Override
     public void create() {
         Category entity = this.getForm();
-        dao.create(entity);
-        this.fillToTable();
-        this.clear();
+        if (!validateCategory(entity)) {
+            return;
+        }
+        if (isDuplicateId(entity.getId())) {
+            XDialog.error("Mã loại đã tồn tại. Vui lòng nhập mã khác!");
+            txtId.requestFocus();
+            return;
+        }
+        try {
+            dao.create(entity);
+            this.fillToTable();
+            this.clear();
+            XDialog.success("Thêm loại thành công!");
+        } catch (Exception ex) {
+            XDialog.error("Lỗi khi thêm loại: " + ex.getMessage());
+        }
     }
 
     @Override
     public void update() {
         Category entity = this.getForm();
-        dao.update(entity);
-        this.fillToTable();
+        if (!validateCategory(entity)) {
+            return;
+        }
+        try {
+            dao.update(entity);
+            this.fillToTable();
+            XDialog.success("Cập nhật loại thành công!");
+        } catch (Exception ex) {
+            XDialog.error("Lỗi khi cập nhật loại: " + ex.getMessage());
+        }
     }
 
     @Override
     public void delete() {
         if (XDialog.confirm("Bạn thực sự muốn xóa?")) {
             String id = txtId.getText();
-            dao.deleteById(id);
-            this.fillToTable();
-            this.clear();
+            try {
+                dao.deleteById(id);
+                this.fillToTable();
+                this.clear();
+                XDialog.success("Đã xóa loại!");
+            } catch (Exception ex) {
+                XDialog.error("Lỗi khi xóa loại: " + ex.getMessage());
+            }
         }
     }
 
@@ -469,6 +533,7 @@ public class CategoryManagerJDialog extends javax.swing.JDialog implements Categ
     public void clear() {
         this.setForm(new Category());
         this.setEditable(false);
+        tblCategories.clearSelection();
     }
 
     @Override
@@ -479,10 +544,11 @@ public class CategoryManagerJDialog extends javax.swing.JDialog implements Categ
         btnDelete.setEnabled(editable);
 
         int rowCount = tblCategories.getRowCount();
-        btnMoveFirst.setEnabled(editable && rowCount > 0);
-        btnMovePrevious.setEnabled(editable && rowCount > 0);
-        btnMoveNext.setEnabled(editable && rowCount > 0);
-        btnMoveLast.setEnabled(editable && rowCount > 0);
+        boolean nav = rowCount > 0;
+        btnMoveFirst.setEnabled(nav);
+        btnMovePrevious.setEnabled(nav);
+        btnMoveNext.setEnabled(nav);
+        btnMoveLast.setEnabled(nav);
     }
 
     @Override
@@ -507,15 +573,20 @@ public class CategoryManagerJDialog extends javax.swing.JDialog implements Categ
 
     @Override
     public void moveTo(int index) {
-        if (index < 0) {
-            this.moveLast();
-        } else if (index >= tblCategories.getRowCount()) {
-            this.moveFirst();
-        } else {
-            tblCategories.clearSelection();
-            tblCategories.setRowSelectionInterval(index, index);
-            this.edit();
+        int rowCount = tblCategories.getRowCount();
+        if (rowCount == 0) {
+            return;
         }
+        if (index < 0) {
+            index = rowCount - 1;
+        }
+        if (index >= rowCount) {
+            index = 0;
+        }
+        tblCategories.setRowSelectionInterval(index, index);
+        setForm(items.get(index));
+        setEditable(true);
+        tabs.setSelectedIndex(1);
     }
 
     /**

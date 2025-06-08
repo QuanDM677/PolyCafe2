@@ -25,6 +25,7 @@ import poly.cafe.util.XIcon;
 public class DrinkManagerJDialog extends javax.swing.JDialog implements DrinkController {
 
     private DefaultComboBoxModel<poly.cafe.entity.Category> categoryModel = new DefaultComboBoxModel<>();
+    private int currentTabIndex = 0;
 
     /**
      * Creates new form DrinkManagerJDialog
@@ -44,7 +45,8 @@ public class DrinkManagerJDialog extends javax.swing.JDialog implements DrinkCon
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jTabbedPane1 = new javax.swing.JTabbedPane();
+        buttonGroup1 = new javax.swing.ButtonGroup();
+        jtbDrinkManagerJDialog = new javax.swing.JTabbedPane();
         jPanel1 = new javax.swing.JPanel();
         jScrollPane1 = new javax.swing.JScrollPane();
         tblCategories = new javax.swing.JTable();
@@ -196,7 +198,7 @@ public class DrinkManagerJDialog extends javax.swing.JDialog implements DrinkCon
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
-        jTabbedPane1.addTab("Danh sách", jPanel1);
+        jtbDrinkManagerJDialog.addTab("Danh sách", jPanel1);
 
         jPanel4.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.RAISED));
 
@@ -320,8 +322,10 @@ public class DrinkManagerJDialog extends javax.swing.JDialog implements DrinkCon
 
         jLabel7.setText("Trạng thái");
 
+        buttonGroup1.add(rdoSan);
         rdoSan.setText("Sẵn sàng");
 
+        buttonGroup1.add(rdoHet);
         rdoHet.setText("Hết hàng");
         rdoHet.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -445,17 +449,17 @@ public class DrinkManagerJDialog extends javax.swing.JDialog implements DrinkCon
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
-        jTabbedPane1.addTab("Biểu mẫu", jPanel2);
+        jtbDrinkManagerJDialog.addTab("Biểu mẫu", jPanel2);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jTabbedPane1)
+            .addComponent(jtbDrinkManagerJDialog)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jTabbedPane1, javax.swing.GroupLayout.Alignment.TRAILING)
+            .addComponent(jtbDrinkManagerJDialog, javax.swing.GroupLayout.Alignment.TRAILING)
         );
 
         pack();
@@ -463,6 +467,8 @@ public class DrinkManagerJDialog extends javax.swing.JDialog implements DrinkCon
 
     private void tblCategoriesMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_tblCategoriesMouseClicked
         this.fillToTable();
+        tblDrinks.clearSelection(); // clear chọn dòng khi đổi loại
+        setEditable(false); // disable các nút sửa/xóa
     }//GEN-LAST:event_tblCategoriesMouseClicked
 
     private void btnChonTatCaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnChonTatCaActionPerformed
@@ -527,8 +533,13 @@ public class DrinkManagerJDialog extends javax.swing.JDialog implements DrinkCon
 
     private void tblDrinksMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_tblDrinksMouseClicked
         // TODO add your handling code here:
-        if (evt.getClickCount() == 2)
+        int row = tblDrinks.getSelectedRow();
+        if (evt.getClickCount() == 2) {
             edit();
+        } else if (evt.getClickCount() == 1 && row >= 0 && items != null && row < items.size()) {
+            setForm(items.get(row));
+            setEditable(true);
+        }
     }//GEN-LAST:event_tblDrinksMouseClicked
 
     private void formWindowOpened(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowOpened
@@ -545,7 +556,23 @@ public class DrinkManagerJDialog extends javax.swing.JDialog implements DrinkCon
         setLocationRelativeTo(null);
         fillCategories();
         fillToTable();
-        clear();
+        jtbDrinkManagerJDialog.setSelectedIndex(1); // <-- tab Biểu mẫu
+        currentTabIndex = 1;
+        clear(); // clear sẽ gọi setEditable(false)
+        jtbDrinkManagerJDialog.addChangeListener(e -> {
+            currentTabIndex = jtbDrinkManagerJDialog.getSelectedIndex();
+            if (currentTabIndex == 0) {
+                clear();
+            } else if (currentTabIndex == 1) {
+                int row = tblDrinks.getSelectedRow();
+                if (row >= 0 && items != null && row < items.size()) {
+                    setForm(items.get(row));
+                    setEditable(true);
+                } else {
+                    clear();
+                }
+            }
+        });
     }
 
     public void fillCategories() {
@@ -585,14 +612,37 @@ public class DrinkManagerJDialog extends javax.swing.JDialog implements DrinkCon
         }
     }
 
+    private boolean isDuplicateId(String id) {
+        // Nếu đã tồn tại đồ uống với id này trong DB
+        Drink d = dao.findById(id); // Bạn cần có hàm findById trong DAO
+        return d != null;
+    }
+
+    public boolean validateDrink(Drink drink) {
+        if (drink.getName() == null || drink.getName().isBlank()) {
+            XDialog.warning("Tên đồ uống không được để trống!");
+            return false;
+        }
+        if (drink.getUnitPrice() < 0) {
+            XDialog.warning("Giá đồ uống không được âm hoặc chứa ký tự!");
+            return false;
+        }
+        if (drink.getUnitPrice() == 0) {
+            XDialog.warning("Giá đồ uống phải lớn hơn 0!");
+            return false;
+        }
+        return true;
+    }
+
     public Drink getForm() {
         Drink drink = new Drink();
         drink.setId(txtMaDoUong.getText());
         drink.setName(txtTenDoUong.getText());
         try {
-            drink.setUnitPrice(Double.parseDouble(txtDonGia.getText()));
+            double price = Double.parseDouble(txtDonGia.getText());
+            drink.setUnitPrice(price);
         } catch (Exception e) {
-            drink.setUnitPrice(0);
+            drink.setUnitPrice(-1); // SỬA: Để validate sẽ báo lỗi
         }
         drink.setDiscount(sldGiamGia.getValue() / 100.0);
         drink.setAvailable(rdoSan.isSelected());
@@ -637,28 +687,74 @@ public class DrinkManagerJDialog extends javax.swing.JDialog implements DrinkCon
     public void clear() {
         this.setForm(new Drink());
         setEditable(false);
+        tblDrinks.clearSelection();
     }
 
     public void create() {
         Drink entity = getForm();
-        dao.create(entity);
-        fillToTable();
-        clear();
+        // Kiểm tra mã không được để trống
+        if (entity.getId() == null || entity.getId().isBlank()) {
+            XDialog.warning("Mã đồ uống không được để trống!");
+            return;
+        }
+        // Kiểm tra trùng mã
+        if (isDuplicateId(entity.getId())) {
+            XDialog.error("Mã đồ uống đã tồn tại. Vui lòng nhập mã khác!");
+            return;
+        }
+        if (!validateDrink(entity)) {
+            return;
+        }
+        try {
+            dao.create(entity);
+            fillToTable();
+            clear();
+            XDialog.success("Thêm đồ uống thành công!");
+        } catch (Exception ex) {
+            XDialog.error("Lỗi khi thêm đồ uống: " + ex.getMessage());
+        }
     }
 
     public void update() {
         Drink entity = getForm();
-        dao.update(entity);
-        fillToTable();
+        // Không cho đổi mã nếu mã mới đã tồn tại (và khác mã cũ)
+        int row = tblDrinks.getSelectedRow();
+        if (row >= 0 && items != null && row < items.size()) {
+            String oldId = items.get(row).getId();
+            if (!entity.getId().equals(oldId) && isDuplicateId(entity.getId())) {
+                XDialog.error("Mã đồ uống đã tồn tại. Vui lòng nhập mã khác!");
+                return;
+            }
+        }
+        if (!validateDrink(entity)) {
+            return;
+        }
+        try {
+            dao.update(entity);
+            fillToTable();
+            XDialog.success("Cập nhật thành công!");
+        } catch (Exception ex) {
+            XDialog.error("Lỗi khi cập nhật: " + ex.getMessage());
+        }
     }
 
     public void delete() {
         int row = tblDrinks.getSelectedRow();
         if (row >= 0 && items != null && row < items.size()) {
+            if (!XDialog.confirm("Bạn có chắc chắn muốn xóa đồ uống này không?")) {
+                return;
+            }
             String id = items.get(row).getId();
-            dao.deleteById(id);
-            fillToTable();
-            clear();
+            try {
+                dao.deleteById(id);
+                fillToTable();
+                clear();
+                XDialog.success("Đã xóa đồ uống!");
+            } catch (Exception ex) {
+                XDialog.error("Lỗi khi xóa: " + ex.getMessage());
+            }
+        } else {
+            XDialog.alert("Vui lòng chọn đồ uống cần xóa!");
         }
     }
 
@@ -667,8 +763,9 @@ public class DrinkManagerJDialog extends javax.swing.JDialog implements DrinkCon
         if (row >= 0 && items != null && row < items.size()) {
             Drink entity = items.get(row);
             setForm(entity);
-            setEditable(true);
-            jTabbedPane1.setSelectedIndex(1);
+            setEditable(true); // Đúng: đang sửa!
+            jtbDrinkManagerJDialog.setSelectedIndex(1);
+            currentTabIndex = 1;
         }
     }
 
@@ -677,14 +774,32 @@ public class DrinkManagerJDialog extends javax.swing.JDialog implements DrinkCon
         BtnThem.setEnabled(!editable);
         BtnSua.setEnabled(editable);
         BtnXoa.setEnabled(editable);
+
         int rowCount = tblDrinks.getRowCount();
-        btnFirst.setEnabled(editable && rowCount > 0);
-        btnBack.setEnabled(editable && rowCount > 0);
-        btnNext.setEnabled(editable && rowCount > 0);
-        btnLast.setEnabled(editable && rowCount > 0);
+        boolean nav = rowCount > 0;
+        btnFirst.setEnabled(nav);
+        btnBack.setEnabled(nav);
+        btnNext.setEnabled(nav);
+        btnLast.setEnabled(nav);
     }
 
     // Navigation
+    public void moveTo(int index) {
+        int rowCount = tblDrinks.getRowCount();
+        if (rowCount == 0) {
+            return;
+        }
+        if (index < 0) {
+            index = rowCount - 1;
+        }
+        if (index >= rowCount) {
+            index = 0;
+        }
+        tblDrinks.setRowSelectionInterval(index, index);
+        setForm(items.get(index));
+        setEditable(true);
+    }
+
     public void moveFirst() {
         moveTo(0);
     }
@@ -699,18 +814,6 @@ public class DrinkManagerJDialog extends javax.swing.JDialog implements DrinkCon
 
     public void moveLast() {
         moveTo(tblDrinks.getRowCount() - 1);
-    }
-
-    public void moveTo(int index) {
-        if (index < 0) {
-            moveLast();
-        } else if (index >= tblDrinks.getRowCount()) {
-            moveFirst();
-        } else {
-            tblDrinks.clearSelection();
-            tblDrinks.setRowSelectionInterval(index, index);
-            edit();
-        }
     }
 
     // Select all, unselect all, delete selected
@@ -729,17 +832,35 @@ public class DrinkManagerJDialog extends javax.swing.JDialog implements DrinkCon
     }
 
     public void deleteCheckedItems() {
+        // Đếm số mục được chọn
         int cnt = 0;
         for (int i = 0; i < tblDrinks.getRowCount(); i++) {
-            if ((Boolean) tblDrinks.getValueAt(i, 5)) {
-                dao.deleteById(items.get(i).getId());
+            Boolean checked = (Boolean) tblDrinks.getValueAt(i, 5);
+            if (checked != null && checked) {
                 cnt++;
             }
         }
-        if (cnt > 0) {
-            XDialog.alert("Đã xóa " + cnt + " mục.");
+        if (cnt == 0) {
+            XDialog.alert("Vui lòng chọn ít nhất một đồ uống để xóa!");
+            return;
+        }
+        if (!XDialog.confirm("Bạn có chắc chắn muốn xóa " + cnt + " đồ uống đã chọn?")) {
+            return;
+        }
+        int deleted = 0;
+        for (int i = 0; i < tblDrinks.getRowCount(); i++) {
+            Boolean checked = (Boolean) tblDrinks.getValueAt(i, 5);
+            if (checked != null && checked) {
+                try {
+                    dao.deleteById(items.get(i).getId());
+                    deleted++;
+                } catch (Exception ex) {
+                    XDialog.error("Lỗi khi xóa mã: " + items.get(i).getId() + " - " + ex.getMessage());
+                }
+            }
         }
         fillToTable();
+        XDialog.success("Đã xóa " + deleted + " mục.");
     }
 
     // Chọn file ảnh
@@ -806,6 +927,7 @@ public class DrinkManagerJDialog extends javax.swing.JDialog implements DrinkCon
     private javax.swing.JButton btnLast;
     private javax.swing.JButton btnNext;
     private javax.swing.JButton btnXoaDaChon;
+    private javax.swing.ButtonGroup buttonGroup1;
     private javax.swing.JComboBox cboCategories;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
@@ -818,7 +940,7 @@ public class DrinkManagerJDialog extends javax.swing.JDialog implements DrinkCon
     private javax.swing.JPanel jPanel4;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
-    private javax.swing.JTabbedPane jTabbedPane1;
+    private javax.swing.JTabbedPane jtbDrinkManagerJDialog;
     private javax.swing.JLabel lblImage;
     private javax.swing.JRadioButton rdoHet;
     private javax.swing.JRadioButton rdoSan;

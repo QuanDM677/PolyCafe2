@@ -12,6 +12,7 @@ import poly.cafe.dao.impl.RevenueDAOImpl;
 import poly.cafe.entity.Revenue;
 import poly.cafe.util.TimeRange;
 import poly.cafe.util.XDate;
+import poly.cafe.util.XDialog;
 
 /**
  *
@@ -82,7 +83,7 @@ public class RevenueManagerJDialog extends javax.swing.JDialog implements Revenu
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 545, Short.MAX_VALUE)
+                .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 552, Short.MAX_VALUE)
                 .addContainerGap())
         );
         jPanel1Layout.setVerticalGroup(
@@ -113,7 +114,7 @@ public class RevenueManagerJDialog extends javax.swing.JDialog implements Revenu
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel2Layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 545, Short.MAX_VALUE)
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 552, Short.MAX_VALUE)
                 .addContainerGap())
         );
         jPanel2Layout.setVerticalGroup(
@@ -140,7 +141,7 @@ public class RevenueManagerJDialog extends javax.swing.JDialog implements Revenu
             }
         });
 
-        cboTimeRanges3.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Năm nay" }));
+        cboTimeRanges3.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Hôm nay", "Tuần này", "Tháng này", "Quý này", "Năm nay" }));
         cboTimeRanges3.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 cboTimeRanges3ActionPerformed(evt);
@@ -182,7 +183,7 @@ public class RevenueManagerJDialog extends javax.swing.JDialog implements Revenu
                     .addComponent(btnFilter2)
                     .addComponent(cboTimeRanges3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(18, 18, 18)
-                .addComponent(tabs, javax.swing.GroupLayout.DEFAULT_SIZE, 359, Short.MAX_VALUE)
+                .addComponent(tabs)
                 .addContainerGap())
         );
 
@@ -238,11 +239,44 @@ public class RevenueManagerJDialog extends javax.swing.JDialog implements Revenu
         this.fillRevenue();
     }
 
-    @Override
-    public void fillRevenue() {
+    private boolean validateFilter() {
+        if (txtBegin.getText().isBlank()) {
+            XDialog.warning("Vui lòng nhập ngày bắt đầu!");
+            txtBegin.requestFocus();
+            return false;
+        }
+        if (txtEnd.getText().isBlank()) {
+            XDialog.warning("Vui lòng nhập ngày kết thúc!");
+            txtEnd.requestFocus();
+            return false;
+        }
         Date begin = XDate.parse(txtBegin.getText(), "MM/dd/yyyy");
         Date end = XDate.parse(txtEnd.getText(), "MM/dd/yyyy");
-        // Sửa: set end về cuối ngày
+        if (begin == null) {
+            XDialog.warning("Ngày bắt đầu không đúng định dạng MM/dd/yyyy!");
+            txtBegin.requestFocus();
+            return false;
+        }
+        if (end == null) {
+            XDialog.warning("Ngày kết thúc không đúng định dạng MM/dd/yyyy!");
+            txtEnd.requestFocus();
+            return false;
+        }
+        if (begin.after(end)) {
+            XDialog.warning("Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc!");
+            txtBegin.requestFocus();
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public void fillRevenue() {
+        if (!validateFilter()) {
+            return;
+        }
+        Date begin = XDate.parse(txtBegin.getText(), "MM/dd/yyyy");
+        Date end = XDate.parse(txtEnd.getText(), "MM/dd/yyyy");
         if (end != null) {
             java.util.Calendar cal = java.util.Calendar.getInstance();
             cal.setTime(end);
@@ -262,9 +296,12 @@ public class RevenueManagerJDialog extends javax.swing.JDialog implements Revenu
 
     private void fillRevenueByCategory(Date begin, Date end) {
         List<Revenue.ByCategory> items = dao.getByCategory(begin, end);
-
         DefaultTableModel model = (DefaultTableModel) tblByCategory.getModel();
         model.setRowCount(0);
+        if (items == null || items.isEmpty()) {
+            XDialog.info("Không có dữ liệu doanh thu theo loại trong khoảng thời gian này!");
+            return;
+        }
         items.forEach(item -> {
             Object[] row = {
                 item.getCategory(),
@@ -280,9 +317,12 @@ public class RevenueManagerJDialog extends javax.swing.JDialog implements Revenu
 
     private void fillRevenueByUser(Date begin, Date end) {
         List<Revenue.ByUser> items = dao.getByUser(begin, end);
-
         DefaultTableModel model = (DefaultTableModel) tblByUser.getModel();
         model.setRowCount(0);
+        if (items == null || items.isEmpty()) {
+            XDialog.info("Không có dữ liệu doanh thu theo nhân viên trong khoảng thời gian này!");
+            return;
+        }
         items.forEach(item -> {
             Object[] row = {
                 item.getUser(),
@@ -338,12 +378,7 @@ public class RevenueManagerJDialog extends javax.swing.JDialog implements Revenu
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton btnFilter;
-    private javax.swing.JButton btnFilter1;
     private javax.swing.JButton btnFilter2;
-    private javax.swing.JComboBox<String> cboTimeRanges;
-    private javax.swing.JComboBox<String> cboTimeRanges1;
-    private javax.swing.JComboBox<String> cboTimeRanges2;
     private javax.swing.JComboBox<String> cboTimeRanges3;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;

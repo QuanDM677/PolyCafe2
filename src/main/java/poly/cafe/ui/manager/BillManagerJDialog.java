@@ -15,6 +15,7 @@ import poly.cafe.entity.Bill;
 import poly.cafe.entity.BillDetail;
 import poly.cafe.util.TimeRange;
 import poly.cafe.util.XDate;
+import poly.cafe.util.XDialog;
 
 /**
  *
@@ -39,6 +40,7 @@ public class BillManagerJDialog extends javax.swing.JDialog {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        buttonGroup1 = new javax.swing.ButtonGroup();
         jTabbedPane1 = new javax.swing.JTabbedPane();
         jPanel1 = new javax.swing.JPanel();
         jScrollPane1 = new javax.swing.JScrollPane();
@@ -80,6 +82,11 @@ public class BillManagerJDialog extends javax.swing.JDialog {
         tblBillDetails = new javax.swing.JTable();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            public void windowOpened(java.awt.event.WindowEvent evt) {
+                formWindowOpened(evt);
+            }
+        });
 
         tblBills.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
@@ -98,6 +105,11 @@ public class BillManagerJDialog extends javax.swing.JDialog {
 
             public Class getColumnClass(int columnIndex) {
                 return types [columnIndex];
+            }
+        });
+        tblBills.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                tblBillsMouseClicked(evt);
             }
         });
         jScrollPane1.setViewportView(tblBills);
@@ -138,7 +150,7 @@ public class BillManagerJDialog extends javax.swing.JDialog {
             }
         });
 
-        cboTimeRanges.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Hôm nay", "Tuần này", "Tháng này", "Năm nay" }));
+        cboTimeRanges.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Hôm nay", "Tuần này", "Tháng này", "Quý này", "Năm nay" }));
         cboTimeRanges.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 cboTimeRangesActionPerformed(evt);
@@ -328,10 +340,13 @@ public class BillManagerJDialog extends javax.swing.JDialog {
 
         jLabel8.setText("Người tạo");
 
+        buttonGroup1.add(rdoBaoTri);
         rdoBaoTri.setText("Đang phục vụ");
 
+        buttonGroup1.add(rdoHoanThanh);
         rdoHoanThanh.setText("Hoàn thành");
 
+        buttonGroup1.add(rdoDaHuy);
         rdoDaHuy.setText("Đã hủy");
 
         tblBillDetails.setModel(new javax.swing.table.DefaultTableModel(
@@ -431,7 +446,7 @@ public class BillManagerJDialog extends javax.swing.JDialog {
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jTabbedPane1, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 641, Short.MAX_VALUE)
+            .addComponent(jTabbedPane1, javax.swing.GroupLayout.Alignment.TRAILING)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -442,27 +457,15 @@ public class BillManagerJDialog extends javax.swing.JDialog {
     }// </editor-fold>//GEN-END:initComponents
 
     private void BtnChonTatCaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnChonTatCaActionPerformed
-        setCheckedAll(true);
+        this.checkAll();
     }//GEN-LAST:event_BtnChonTatCaActionPerformed
 
     private void BtnBoChonTatCaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnBoChonTatCaActionPerformed
-        setCheckedAll(false);
+        this.uncheckAll();
     }//GEN-LAST:event_BtnBoChonTatCaActionPerformed
 
     private void BtnXoaTatCaDaChonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnXoaTatCaDaChonActionPerformed
-        int cnt = 0;
-        for (int i = 0; i < tblBills.getRowCount(); i++) {
-            Boolean checked = (Boolean) tblBills.getValueAt(i, 6);
-            if (checked != null && checked) {
-                Long id = (Long) tblBills.getValueAt(i, 0);
-                dao.deleteById(id);
-                cnt++;
-            }
-        }
-        if (cnt > 0) {
-            fillToTable();
-            clear();
-        }
+        this.deleteCheckedItems();
     }//GEN-LAST:event_BtnXoaTatCaDaChonActionPerformed
 
     private void BtnLocActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnLocActionPerformed
@@ -474,7 +477,7 @@ public class BillManagerJDialog extends javax.swing.JDialog {
     }//GEN-LAST:event_cboTimeRangesActionPerformed
 
     private void BtnThemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnThemActionPerformed
-
+        this.create();
     }//GEN-LAST:event_BtnThemActionPerformed
 
     private void BtnCapNhapActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnCapNhapActionPerformed
@@ -507,13 +510,27 @@ public class BillManagerJDialog extends javax.swing.JDialog {
 
     private void tblBillDetailsMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_tblBillDetailsMouseClicked
         // TODO add your handling code here:
+    }//GEN-LAST:event_tblBillDetailsMouseClicked
+
+    private void tblBillsMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_tblBillsMouseClicked
+        // TODO add your handling code here:
         int row = tblBills.getSelectedRow();
-        if (row >= 0 && row < items.size()) {
+        if (evt.getClickCount() == 2) {
+            if (row >= 0 && items != null && row < items.size()) {
+                setForm(items.get(row));
+                setEditable(true);
+                jTabbedPane1.setSelectedIndex(1);
+            }
+        } else if (evt.getClickCount() == 1 && row >= 0 && items != null && row < items.size()) {
             setForm(items.get(row));
             setEditable(true);
-            jTabbedPane1.setSelectedIndex(1);
         }
-    }//GEN-LAST:event_tblBillDetailsMouseClicked
+    }//GEN-LAST:event_tblBillsMouseClicked
+
+    private void formWindowOpened(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowOpened
+        // TODO add your handling code here:
+        this.open();
+    }//GEN-LAST:event_formWindowOpened
 
     BillDAO dao = new BillDAOImpl();
     List<Bill> items = List.of(); // phiếu bán hàng 
@@ -526,33 +543,163 @@ public class BillManagerJDialog extends javax.swing.JDialog {
         this.clear();
     }
 
+    public void checkAll() {
+        setCheckedAll(true);
+    }
+
+    public void uncheckAll() {
+        setCheckedAll(false);
+    }
+
+    // Kiểm tra trùng mã phiếu
+    private boolean isDuplicateId(Long id) {
+        if (id == null) {
+            return false;
+        }
+        Bill b = dao.findById(id);
+        return b != null;
+    }
+
+    public void deleteCheckedItems() {
+        int cnt = 0;
+        for (int i = 0; i < tblBills.getRowCount(); i++) {
+            Boolean checked = (Boolean) tblBills.getValueAt(i, 6);
+            if (checked != null && checked) {
+                cnt++;
+            }
+        }
+        if (cnt == 0) {
+            XDialog.alert("Vui lòng chọn hóa đơn cần xóa!");
+            return;
+        }
+        if (!XDialog.confirm("Bạn có chắc chắn muốn xóa " + cnt + " hóa đơn đã chọn?")) {
+            return;
+        }
+        int deleted = 0;
+        for (int i = 0; i < tblBills.getRowCount(); i++) {
+            Boolean checked = (Boolean) tblBills.getValueAt(i, 6);
+            if (checked != null && checked) {
+                try {
+                    Long id = (Long) tblBills.getValueAt(i, 0);
+                    dao.deleteById(id);
+                    deleted++;
+                } catch (Exception ex) {
+                    XDialog.error("Lỗi khi xóa hóa đơn mã: " + tblBills.getValueAt(i, 0) + " - " + ex.getMessage());
+                }
+            }
+        }
+        fillToTable();
+        clear();
+        XDialog.success("Đã xóa " + deleted + " hóa đơn đã chọn!");
+    }
+
+    private boolean validateForm() {
+        // Nếu txtId không cho nhập khi tạo mới (mã tự tăng), không kiểm tra nữa
+
+        // Thẻ số
+        if (txtTheSo.getText().isBlank()) {
+            XDialog.warning("Thẻ số không được để trống!");
+            txtTheSo.requestFocus();
+            return false;
+        }
+        try {
+            Integer.parseInt(txtTheSo.getText());
+        } catch (Exception e) {
+            XDialog.warning("Thẻ số phải là số nguyên hợp lệ!");
+            txtTheSo.requestFocus();
+            return false;
+        }
+
+        // Thời điểm tạo
+        if (txtThoiDiemTao.getText().isBlank()) {
+            XDialog.warning("Thời điểm tạo không được để trống!");
+            txtThoiDiemTao.requestFocus();
+            return false;
+        }
+        if (XDate.parse(txtThoiDiemTao.getText(), "HH:mm dd/MM/yyyy") == null) {
+            XDialog.warning("Thời điểm tạo phải đúng định dạng HH:mm dd/MM/yyyy!");
+            txtThoiDiemTao.requestFocus();
+            return false;
+        }
+
+        // Nếu có nhập thời điểm thanh toán thì phải đúng định dạng
+        if (!txtThoiDiemThanhToan.getText().isBlank()
+                && XDate.parse(txtThoiDiemThanhToan.getText(), "HH:mm dd/MM/yyyy") == null) {
+            XDialog.warning("Thời điểm thanh toán phải đúng định dạng HH:mm dd/MM/yyyy!");
+            txtThoiDiemThanhToan.requestFocus();
+            return false;
+        }
+
+        // Người tạo
+        if (txtNguoiTao.getText().isBlank()) {
+            XDialog.warning("Người tạo không được để trống!");
+            txtNguoiTao.requestFocus();
+            return false;
+        }
+
+        // Trạng thái
+        if (!rdoBaoTri.isSelected() && !rdoHoanThanh.isSelected() && !rdoDaHuy.isSelected()) {
+            XDialog.warning("Vui lòng chọn trạng thái hóa đơn!");
+            return false;
+        }
+
+        return true;
+    }
+
     public void setCheckedAll(boolean checked) {
         for (int i = 0; i < tblBills.getRowCount(); i++) {
             tblBills.setValueAt(checked, i, 6); // cột 6 là checkbox
         }
     }
 
-    public void delete() {
-        int row = tblBills.getSelectedRow();
-        if (row >= 0 && items != null && row < items.size()) {
-            Long id = items.get(row).getId();
-            dao.deleteById(id);
+    public void create() {
+        if (!validateForm()) {
+            return;
+        }
+        Bill bill = getForm();
+        try {
+            dao.create(bill);
             fillToTable();
             clear();
+            XDialog.success("Tạo hóa đơn thành công!");
+        } catch (Exception ex) {
+            XDialog.error("Lỗi khi tạo hóa đơn: " + ex.getMessage());
         }
     }
 
-    public void create() {
+    // SỬA lại update - gọi validateForm trước khi update
+    public void update() {
+        if (!validateForm()) {
+            return;
+        }
         Bill bill = getForm();
-        dao.create(bill);
-        fillToTable();
-        clear();
+        try {
+            dao.update(bill);
+            fillToTable();
+            XDialog.success("Cập nhật hóa đơn thành công!");
+        } catch (Exception ex) {
+            XDialog.error("Lỗi khi cập nhật hóa đơn: " + ex.getMessage());
+        }
     }
 
-    public void update() {
-        Bill bill = getForm();
-        dao.update(bill);
-        fillToTable();
+    public void delete() {
+        int row = tblBills.getSelectedRow();
+        if (row >= 0 && items != null && row < items.size()) {
+            if (!XDialog.confirm("Bạn có chắc chắn muốn xóa hóa đơn này không?")) {
+                return;
+            }
+            Long id = items.get(row).getId();
+            try {
+                dao.deleteById(id);
+                fillToTable();
+                clear();
+                XDialog.success("Đã xóa hóa đơn!");
+            } catch (Exception ex) {
+                XDialog.error("Lỗi khi xóa hóa đơn: " + ex.getMessage());
+            }
+        } else {
+            XDialog.alert("Vui lòng chọn hóa đơn cần xóa!");
+        }
     }
 
     public void clear() {
@@ -566,10 +713,11 @@ public class BillManagerJDialog extends javax.swing.JDialog {
         BtnCapNhap.setEnabled(editable);
         BtnXoa.setEnabled(editable);
         int rowCount = tblBills.getRowCount();
-        BtnFirst.setEnabled(editable && rowCount > 0);
-        BtnBack.setEnabled(editable && rowCount > 0);
-        BtnNext.setEnabled(editable && rowCount > 0);
-        BtnLast.setEnabled(editable && rowCount > 0);
+        boolean nav = rowCount > 0;
+        BtnFirst.setEnabled(nav);
+        BtnBack.setEnabled(nav);
+        BtnNext.setEnabled(nav);
+        BtnLast.setEnabled(nav);
     }
 
     public Bill getForm() {
@@ -652,6 +800,12 @@ public class BillManagerJDialog extends javax.swing.JDialog {
 
         Date begin = XDate.parse(txtBegin.getText(), "MM/dd/yyyy");
         Date end = XDate.parse(txtEnd.getText(), "MM/dd/yyyy");
+        if (begin == null || end == null) {
+            XDialog.alert("Ngày không hợp lệ!");
+            return;
+        }
+        // Đảm bảo lấy hết ngày cuối cùng (23h59p59s)
+        end = XDate.atEndOfDay(end);
 
         items = dao.findByTimeRange(begin, end);
 
@@ -770,6 +924,7 @@ public class BillManagerJDialog extends javax.swing.JDialog {
     private javax.swing.JButton BtnThem;
     private javax.swing.JButton BtnXoa;
     private javax.swing.JButton BtnXoaTatCaDaChon;
+    private javax.swing.ButtonGroup buttonGroup1;
     private javax.swing.JComboBox<String> cboTimeRanges;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;

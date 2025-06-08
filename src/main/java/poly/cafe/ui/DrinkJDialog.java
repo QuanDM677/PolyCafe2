@@ -144,41 +144,76 @@ public class DrinkJDialog extends javax.swing.JDialog implements DrinkController
         this.fillDrinks();
     }
 
+    // Đoạn 1: Sửa fillCategories để kiểm tra categories rỗng trước khi setRowSelectionInterval
     public void fillCategories() {
         categories = categoryDao.findAll();
         DefaultTableModel model = (DefaultTableModel) tblCategories.getModel();
         model.setRowCount(0);
         categories.forEach(d -> model.addRow(new Object[]{d.getName()}));
-        tblCategories.setRowSelectionInterval(0, 0);
+        if (!categories.isEmpty()) { // Sửa tại đây
+            tblCategories.setRowSelectionInterval(0, 0);
+        }
     }
 
+// Đoạn 2: Sửa fillDrinks để kiểm tra categories rỗng và chỉ số dòng hợp lệ
+    // SỬA: Khi fillDrinks, chỉ hiển thị đồ uống còn hàng (isAvailable)
     public void fillDrinks() {
-        Category category = categories.get(tblCategories.getSelectedRow());
+        if (categories.isEmpty()) {
+            return;
+        }
+        int catRow = tblCategories.getSelectedRow();
+        if (catRow < 0 || catRow >= categories.size()) {
+            return;
+        }
+        Category category = categories.get(catRow);
         drinks = drinkDao.findByCategoryId(category.getId());
         DefaultTableModel model = (DefaultTableModel) tblDrinks.getModel();
         model.setRowCount(0);
-        drinks.forEach(d -> {
-            Object[] row = {
-                d.getId(),
-                d.getName(),
-                String.format("$%.1f", d.getUnitPrice()),
-                String.format("%.0f%%", d.getDiscount() * 100)
-            };
-            model.addRow(row);
-        });
+        // SỬA: chỉ add đồ uống còn hàng (isAvailable)
+        drinks.stream()
+                .filter(Drink::isAvailable)
+                .forEach(d -> {
+                    Object[] row = {
+                        d.getId(),
+                        d.getName(),
+                        String.format("$%.1f", d.getUnitPrice()),
+                        String.format("%.0f%%", d.getDiscount() * 100)
+                    };
+                    model.addRow(row);
+                });
     }
 
+// Đoạn 3: Sửa addDrinkToBill để kiểm tra bill, bill.getId() và chỉ số dòng hợp lệ
     public void addDrinkToBill() {
+        int drinkRow = tblDrinks.getSelectedRow();
+        if (bill == null || bill.getId() == null) {
+            XDialog.alert("Phiếu chưa được tạo hoặc không hợp lệ!");
+            return;
+        }
+        if (drinks.isEmpty() || drinkRow < 0 || drinkRow >= drinks.size()) {
+            XDialog.alert("Vui lòng chọn đồ uống!");
+            return;
+        }
         String quantity = XDialog.prompt("Số lượng?");
         if (quantity != null && quantity.length() > 0) {
-            Drink drink = drinks.get(tblDrinks.getSelectedRow());
-            BillDetail detail = new BillDetail();
-            detail.setBillId(bill.getId());
-            detail.setDiscount(drink.getDiscount());
-            detail.setDrinkId(drink.getId());
-            detail.setQuantity(Integer.parseInt(quantity));
-            detail.setUnitPrice(drink.getUnitPrice());
-            new BillDetailDAOImpl().create(detail);
+            try {
+                int qty = Integer.parseInt(quantity);
+                if (qty < 1) {
+                    throw new NumberFormatException();
+                }
+                Drink drink = drinks.get(drinkRow);
+                BillDetail detail = new BillDetail();
+                detail.setBillId(bill.getId());
+                detail.setDiscount(drink.getDiscount());
+                detail.setDrinkId(drink.getId());
+                detail.setQuantity(qty);
+                detail.setUnitPrice(drink.getUnitPrice());
+                new BillDetailDAOImpl().create(detail);
+                XDialog.alert("Đã thêm đồ uống vào phiếu!");
+                this.dispose(); // <--- Thêm dòng này để tự đóng dialog!
+            } catch (NumberFormatException ex) {
+                XDialog.alert("Số lượng phải là số nguyên dương!");
+            }
         }
     }
 

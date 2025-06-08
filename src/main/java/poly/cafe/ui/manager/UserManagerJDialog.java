@@ -17,6 +17,8 @@ import poly.cafe.util.XDialog;
  */
 public class UserManagerJDialog extends javax.swing.JDialog implements UserController {
 
+    private final javax.swing.JFileChooser fileChooser = new javax.swing.JFileChooser();
+
     /**
      * Creates new form UserManagerJDialog
      */
@@ -99,6 +101,11 @@ public class UserManagerJDialog extends javax.swing.JDialog implements UserContr
 
             public Class getColumnClass(int columnIndex) {
                 return types [columnIndex];
+            }
+        });
+        tblUsers.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                tblUsersMouseClicked(evt);
             }
         });
         j.setViewportView(tblUsers);
@@ -421,6 +428,7 @@ public class UserManagerJDialog extends javax.swing.JDialog implements UserContr
 
     private void lblPhotoMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_lblPhotoMouseClicked
         // chonAnh();
+        this.choosePhoto();
     }//GEN-LAST:event_lblPhotoMouseClicked
 
     private void btnCreateActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCreateActionPerformed
@@ -460,19 +468,122 @@ public class UserManagerJDialog extends javax.swing.JDialog implements UserContr
         this.open();
     }//GEN-LAST:event_formWindowOpened
 
+    private void tblUsersMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_tblUsersMouseClicked
+        // TODO add your handling code here:
+        if (evt.getClickCount() == 2) {
+            this.edit(); // edit() sẽ tự lấy dòng đang chọn, setForm, setEditable, chuyển tab
+        }
+    }//GEN-LAST:event_tblUsersMouseClicked
+
     UserDAO dao = new UserDAOImpl();
     List<User> items = List.of();
 
+    private boolean validateUser(User entity) {
+        if (entity.getUsername() == null || entity.getUsername().isBlank()) {
+            XDialog.warning("Tên đăng nhập không được để trống!");
+            txtTenDangNhap.requestFocus();
+            return false;
+        }
+        if (entity.getFullname() == null || entity.getFullname().isBlank()) {
+            XDialog.warning("Họ và tên không được để trống!");
+            txtHoVaTen.requestFocus();
+            return false;
+        }
+        if (entity.getPassword() == null || entity.getPassword().isBlank()) {
+            XDialog.warning("Mật khẩu không được để trống!");
+            txtMatKhau.requestFocus();
+            return false;
+        }
+        String confirm = txtXacNhanMatKhau.getText();
+        if (confirm == null || confirm.isBlank()) {
+            XDialog.warning("Vui lòng xác nhận mật khẩu!");
+            txtXacNhanMatKhau.requestFocus();
+            return false;
+        }
+        if (!entity.getPassword().equals(confirm)) {
+            XDialog.warning("Mật khẩu xác nhận không khớp!");
+            txtXacNhanMatKhau.requestFocus();
+            return false;
+        }
+        if (!rdoQuanLy.isSelected() && !rdoNhanVien.isSelected()) {
+            XDialog.warning("Vui lòng chọn vai trò!");
+            rdoQuanLy.requestFocus();
+            return false;
+        }
+        if (!rdoHoatDong.isSelected() && !rdoTamDung.isSelected()) {
+            XDialog.warning("Vui lòng chọn trạng thái hoạt động!");
+            rdoHoatDong.requestFocus();
+            return false;
+        }
+        return true;
+    }
+
+    // --- KIỂM TRA TRÙNG USERNAME ---
+    private boolean isDuplicateUsername(String username) {
+        return dao.findById(username) != null;
+    }
+
+    private void choosePhoto() {
+        if (fileChooser.showOpenDialog(this) == javax.swing.JFileChooser.APPROVE_OPTION) {
+            java.io.File selectedFile = fileChooser.getSelectedFile();
+            // Copy file vào thư mục images (nếu muốn), hoặc chỉ lấy tên file
+            String fileName = selectedFile.getName();
+            // Hiển thị ảnh lên lblPhoto
+            lblPhoto.setIcon(new javax.swing.ImageIcon(selectedFile.getAbsolutePath()));
+            lblPhoto.setToolTipText(fileName); // Lưu tên file vào tooltip để lưu xuống DB
+        }
+    }
+
+    public User getForm() {
+        User entity = new User();
+        entity.setUsername(txtTenDangNhap.getText().trim());
+        entity.setPassword(txtMatKhau.getText());
+        entity.setFullname(txtHoVaTen.getText().trim());
+        String photoName = lblPhoto.getToolTipText();
+        entity.setPhoto(photoName != null && !photoName.isBlank() ? photoName : "photo.png");
+        entity.setManager(rdoQuanLy.isSelected());
+        entity.setEnabled(rdoHoatDong.isSelected());
+        return entity;
+    }
+
+    // --- ĐỔ DỮ LIỆU LÊN FORM ---
+    public void setForm(User entity) {
+        txtTenDangNhap.setText(entity.getUsername());
+        txtMatKhau.setText(entity.getPassword());
+        txtXacNhanMatKhau.setText(entity.getPassword());
+        txtHoVaTen.setText(entity.getFullname());
+        // Ảnh
+        if (entity.getPhoto() != null && !entity.getPhoto().isBlank()) {
+            lblPhoto.setToolTipText(entity.getPhoto());
+            java.io.File imgFile = new java.io.File("images", entity.getPhoto());
+            if (imgFile.exists()) {
+                lblPhoto.setIcon(new javax.swing.ImageIcon(imgFile.getAbsolutePath()));
+            } else {
+                java.net.URL iconURL = getClass().getResource("/img/photo.png");
+                lblPhoto.setIcon(iconURL != null ? new javax.swing.ImageIcon(iconURL) : null);
+            }
+        } else {
+            lblPhoto.setToolTipText("photo.png");
+            java.net.URL iconURL = getClass().getResource("/img/photo.png");
+            lblPhoto.setIcon(iconURL != null ? new javax.swing.ImageIcon(iconURL) : null);
+        }
+        // Vai trò
+        rdoQuanLy.setSelected(entity.isManager());
+        rdoNhanVien.setSelected(!entity.isManager());
+        // Trạng thái
+        rdoHoatDong.setSelected(entity.isEnabled());
+        rdoTamDung.setSelected(!entity.isEnabled());
+    }
+
     public void open() {
-        this.setLocationRelativeTo(null);
-        this.fillToTable();
-        this.clear();
+        setLocationRelativeTo(null);
+        fillToTable();
+        clear();
     }
 
     public void fillToTable() {
         DefaultTableModel model = (DefaultTableModel) tblUsers.getModel();
         model.setRowCount(0);
-
         items = dao.findAll();
         for (User item : items) {
             Object[] rowData = {
@@ -488,19 +599,90 @@ public class UserManagerJDialog extends javax.swing.JDialog implements UserContr
         }
     }
 
+    public void create() {
+        User entity = getForm();
+        if (!validateUser(entity)) {
+            return;
+        }
+        if (isDuplicateUsername(entity.getUsername())) {
+            XDialog.error("Tên đăng nhập đã tồn tại. Vui lòng nhập tên khác!");
+            txtTenDangNhap.requestFocus();
+            return;
+        }
+        try {
+            dao.create(entity);
+            fillToTable();
+            clear();
+            XDialog.success("Thêm tài khoản thành công!");
+        } catch (Exception ex) {
+            XDialog.error("Lỗi khi thêm tài khoản: " + ex.getMessage());
+        }
+    }
+
+    public void update() {
+        User entity = getForm();
+        if (!validateUser(entity)) {
+            return;
+        }
+        try {
+            dao.update(entity);
+            fillToTable();
+            XDialog.success("Cập nhật tài khoản thành công!");
+        } catch (Exception ex) {
+            XDialog.error("Lỗi khi cập nhật tài khoản: " + ex.getMessage());
+        }
+    }
+
+    public void delete() {
+        if (XDialog.confirm("Bạn thực sự muốn xóa?")) {
+            String username = txtTenDangNhap.getText();
+            try {
+                dao.deleteById(username);
+                fillToTable();
+                clear();
+                XDialog.success("Đã xóa tài khoản!");
+            } catch (Exception ex) {
+                XDialog.error("Lỗi khi xóa tài khoản: " + ex.getMessage());
+            }
+        }
+    }
+
     public void edit() {
-        User entity = items.get(tblUsers.getSelectedRow());
-        this.setForm(entity);
-        this.setEditable(true);
-        tabs.setSelectedIndex(1);
+        int row = tblUsers.getSelectedRow();
+        if (row >= 0 && items != null && row < items.size()) {
+            User entity = items.get(row);
+            setForm(entity);
+            setEditable(true);
+            tabs.setSelectedIndex(1); // chuyển sang tab Biểu mẫu
+        }
+    }
+
+    public void clear() {
+        setForm(new User());
+        setEditable(false);
+        tblUsers.clearSelection();
+    }
+
+    public void setEditable(boolean editable) {
+        txtTenDangNhap.setEnabled(!editable);   // Khóa tên đăng nhập khi sửa
+        btnCreate.setEnabled(!editable);        // Chỉ bật khi thêm mới
+        btnUpdate.setEnabled(editable);         // Bật khi sửa
+        btnDelete.setEnabled(editable);         // Bật khi sửa
+
+        int rowCount = tblUsers.getRowCount();
+        boolean nav = rowCount > 0;
+        btnFirst.setEnabled(nav);
+        btnBack.setEnabled(nav);
+        btnNext.setEnabled(nav);
+        btnLast.setEnabled(nav);
     }
 
     public void checkAll() {
-        this.setCheckedAll(true);
+        setCheckedAll(true);
     }
 
     public void uncheckAll() {
-        this.setCheckedAll(false);
+        setCheckedAll(false);
     }
 
     private void setCheckedAll(boolean checked) {
@@ -510,108 +692,62 @@ public class UserManagerJDialog extends javax.swing.JDialog implements UserContr
     }
 
     public void deleteCheckedItems() {
-        if (XDialog.confirm("Bạn thực sự muốn xóa các mục chọn?")) {
+        int cnt = 0;
+        for (int i = 0; i < tblUsers.getRowCount(); i++) {
+            if ((Boolean) tblUsers.getValueAt(i, 6)) {
+                cnt++;
+            }
+        }
+        if (cnt == 0) {
+            XDialog.alert("Vui lòng chọn ít nhất một tài khoản để xóa!");
+            return;
+        }
+        if (XDialog.confirm("Bạn thực sự muốn xóa " + cnt + " mục chọn?")) {
+            int deleted = 0;
             for (int i = 0; i < tblUsers.getRowCount(); i++) {
                 if ((Boolean) tblUsers.getValueAt(i, 6)) {
-                    dao.deleteById(items.get(i).getUsername());
+                    try {
+                        dao.deleteById(items.get(i).getUsername());
+                        deleted++;
+                    } catch (Exception ex) {
+                        XDialog.error("Lỗi khi xóa mã: " + items.get(i).getUsername() + " - " + ex.getMessage());
+                    }
                 }
             }
             fillToTable();
+            XDialog.success("Đã xóa " + deleted + " tài khoản!");
         }
-    }
-
-    public User getForm() {
-        User entity = new User();
-        entity.setUsername(txtTenDangNhap.getText());
-        entity.setPassword(txtMatKhau.getText());
-        entity.setFullname(txtHoVaTen.getText());
-        String photoPath = lblPhoto.getIcon() != null ? lblPhoto.getIcon().toString() : "photo.png";
-        // Lấy tên file từ đường dẫn
-        String photoName = photoPath.substring(photoPath.lastIndexOf('/') + 1);
-        entity.setPhoto(photoName);
-        entity.setManager(rdoQuanLy.isSelected());
-        entity.setEnabled(rdoHoatDong.isSelected());
-        return entity;
-    }
-
-    public void setForm(User entity) {
-        txtTenDangNhap.setText(entity.getUsername());
-        txtMatKhau.setText(entity.getPassword());
-        txtXacNhanMatKhau.setText(entity.getPassword());
-        txtHoVaTen.setText(entity.getFullname());
-        // load hình vào lblPhoto nếu muốn
-        rdoQuanLy.setSelected(entity.isManager());
-        rdoNhanVien.setSelected(!entity.isManager());
-        rdoHoatDong.setSelected(entity.isEnabled());
-        rdoTamDung.setSelected(!entity.isEnabled());
-    }
-
-    public void create() {
-        User entity = getForm();
-        dao.create(entity);
-        fillToTable();
-        clear();
-    }
-
-    public void update() {
-        User entity = getForm();
-        dao.update(entity);
-        fillToTable();
-    }
-
-    public void delete() {
-        if (XDialog.confirm("Bạn thực sự muốn xóa?")) {
-            String username = txtTenDangNhap.getText();
-            dao.deleteById(username);
-            fillToTable();
-            clear();
-        }
-    }
-
-    public void clear() {
-        this.setForm(new User());
-        this.setEditable(false);
-    }
-
-    public void setEditable(boolean editable) {
-        txtTenDangNhap.setEnabled(!editable);
-        btnCreate.setEnabled(!editable);
-        btnUpdate.setEnabled(editable);
-        btnDelete.setEnabled(editable);
-
-        int rowCount = tblUsers.getRowCount();
-        btnFirst.setEnabled(editable && rowCount > 0);
-        btnBack.setEnabled(editable && rowCount > 0);
-        btnNext.setEnabled(editable && rowCount > 0);
-        btnLast.setEnabled(editable && rowCount > 0);
     }
 
     public void moveFirst() {
-        this.moveTo(0);
+        moveTo(0);
     }
 
     public void movePrevious() {
-        this.moveTo(tblUsers.getSelectedRow() - 1);
+        moveTo(tblUsers.getSelectedRow() - 1);
     }
 
     public void moveNext() {
-        this.moveTo(tblUsers.getSelectedRow() + 1);
+        moveTo(tblUsers.getSelectedRow() + 1);
     }
 
     public void moveLast() {
-        this.moveTo(tblUsers.getRowCount() - 1);
+        moveTo(tblUsers.getRowCount() - 1);
     }
 
     public void moveTo(int index) {
-        if (index < 0) {
-            this.moveLast();
-        } else if (index >= tblUsers.getRowCount()) {
-            this.moveFirst();
-        } else {
-            tblUsers.clearSelection();
-            tblUsers.setRowSelectionInterval(index, index);
-            this.edit();
+        int rowCount = tblUsers.getRowCount();
+        if (rowCount == 0) {
+            return;
         }
+        if (index < 0) {
+            index = rowCount - 1;
+        }
+        if (index >= rowCount) {
+            index = 0;
+        }
+        tblUsers.setRowSelectionInterval(index, index);
+        edit();
     }
 
     /**

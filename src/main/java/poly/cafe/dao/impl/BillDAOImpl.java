@@ -1,9 +1,8 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package poly.cafe.dao.impl;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.Date;
 import java.util.List;
 import poly.cafe.dao.BillDAO;
@@ -29,8 +28,26 @@ public class BillDAOImpl implements BillDAO {
 
     @Override
     public Bill create(Bill entity) {
-        XJdbc.executeUpdate(createSql, entity.getUsername(), entity.getCardId(), entity.getCheckin(), entity.getCheckout(), entity.getStatus());
-        // Nếu muốn lấy id vừa tạo, cần bổ sung logic get giá trị tự tăng
+        // Sửa: Lấy lại id tự tăng vừa tạo
+        try (Connection con = XJdbc.openConnection(); PreparedStatement stmt = con.prepareStatement(createSql, PreparedStatement.RETURN_GENERATED_KEYS)) {
+            stmt.setString(1, entity.getUsername());
+            stmt.setInt(2, entity.getCardId());
+            stmt.setTimestamp(3, new java.sql.Timestamp(entity.getCheckin().getTime()));
+            if (entity.getCheckout() != null) {
+                stmt.setTimestamp(4, new java.sql.Timestamp(entity.getCheckout().getTime()));
+            } else {
+                stmt.setTimestamp(4, null);
+            }
+            stmt.setInt(5, entity.getStatus());
+            stmt.executeUpdate();
+            try (ResultSet rs = stmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    entity.setId(rs.getLong(1));
+                }
+            }
+        } catch (Exception ex) {
+            throw new RuntimeException("Error when creating Bill: " + ex.getMessage(), ex);
+        }
         return entity;
     }
 
@@ -80,7 +97,7 @@ public class BillDAOImpl implements BillDAO {
             newBill.setCheckin(new Date());
             newBill.setStatus(0); // đang phục vụ 
             newBill.setUsername(XAuth.user.getUsername());
-            bill = this.create(newBill); // insert 
+            bill = this.create(newBill); // insert, đã có id trả về
         }
         return bill;
     }

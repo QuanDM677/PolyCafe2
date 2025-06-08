@@ -285,8 +285,23 @@ public final class PolyCafeJFrame extends javax.swing.JFrame implements PolyCafe
         XIcon.setIcon(lblPhoto, "photos/" + XAuth.user.getPhoto());
         lblFullname.setText(XAuth.user.getFullname());
 
-        if (!XAuth.user.isManager()) {
-            pnlCenter.remove(pnlManager);
+        if (XAuth.user.isManager()) {
+            // Quản lý: hiện đầy đủ các chức năng
+            pnlManager.setVisible(true);
+            btnRevenueManager.setVisible(true);
+            btnUserManager.setVisible(true);
+            btnCategoryManager.setVisible(true);
+            btnDrinkManager.setVisible(true);
+            btnBillManager.setVisible(true);
+            btnCardManager.setVisible(true);
+        } else {
+            // Nhân viên: Ẩn các chức năng quản lý không cần thiết
+            btnRevenueManager.setVisible(false);
+            btnUserManager.setVisible(false);
+            btnCategoryManager.setVisible(false);
+            btnDrinkManager.setVisible(false);
+            btnBillManager.setVisible(false);
+            btnCardManager.setVisible(false);
         }
     }
 

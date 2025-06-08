@@ -2,6 +2,7 @@ package poly.cafe.util;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 
 public class XDate {
@@ -42,5 +43,15 @@ public class XDate {
         Date date = XDate.parse("Jan 21, 2024", "MMM dd, yyyy");
         String text = XDate.format(date, "dd-MMM-yyyy");
         System.out.println(text); // => 21-Jan-2024
+    }
+
+    public static Date atEndOfDay(Date date) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(date);
+        cal.set(Calendar.HOUR_OF_DAY, 23);
+        cal.set(Calendar.MINUTE, 59);
+        cal.set(Calendar.SECOND, 59);
+        cal.set(Calendar.MILLISECOND, 999);
+        return cal.getTime();
     }
 }

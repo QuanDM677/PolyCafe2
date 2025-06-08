@@ -294,11 +294,12 @@ public class BillJDialog extends javax.swing.JDialog implements BillController {
         this.fillBillDetails();
     }
 
+    // 4. close - hóa đơn không chi tiết thì chuyển trạng thái hủy
     @Override
     public void close() {
-        // Xóa bill nếu không còn đồ uống nào
-        if (billDetails.isEmpty()) {
-            billDao.deleteById(bill.getId());
+        if (billDetails.isEmpty() && bill.getStatus() == Bill.Status.Servicing) {
+            bill.setStatus(Bill.Status.Canceled);
+            billDao.update(bill);
         }
     }
 
@@ -311,15 +312,23 @@ public class BillJDialog extends javax.swing.JDialog implements BillController {
         this.fillBillDetails();
     }
 
+    // 2. removeDrinks - Duyệt ngược, kiểm tra chỉ số, thêm thông báo
     @Override
     public void removeDrinks() {
-        for (int i = 0; i < tblBillDetails.getRowCount(); i++) {
+        boolean removed = false;
+        for (int i = tblBillDetails.getRowCount() - 1; i >= 0; i--) {
             Boolean checked = (Boolean) tblBillDetails.getValueAt(i, 0);
-            if (checked != null && checked) {
+            if (checked != null && checked && i < billDetails.size()) {
                 billDetailDao.deleteById(billDetails.get(i).getId());
+                removed = true;
             }
         }
         this.fillBillDetails();
+        if (removed) {
+            XDialog.success("Đã xóa đồ uống.");
+        } else {
+            XDialog.warning("Vui lòng chọn đồ uống cần xóa.");
+        }
     }
 
     @Override
@@ -335,6 +344,7 @@ public class BillJDialog extends javax.swing.JDialog implements BillController {
         }
     }
 
+    // 3. checkout - tự tắt Form và báo thành công
     @Override
     public void checkout() {
         if (XDialog.confirm("Bạn muốn thanh toán phiếu bán hàng?")) {
@@ -342,6 +352,8 @@ public class BillJDialog extends javax.swing.JDialog implements BillController {
             bill.setCheckout(new Date());
             billDao.update(bill);
             this.setForm(bill);
+            XDialog.success("Thanh toán thành công!");
+            this.dispose();
         }
     }
 
@@ -374,10 +386,11 @@ public class BillJDialog extends javax.swing.JDialog implements BillController {
         btnRemove.setEnabled(editable);
     }
 
+    // 1. fillBillDetails - Không tạo dòng trống
     private void fillBillDetails() {
         billDetails = billDetailDao.findByBillId(bill.getId());
         DefaultTableModel model = (DefaultTableModel) tblBillDetails.getModel();
-        model.setRowCount(1);
+        model.setRowCount(0); // Sửa tại đây
         for (BillDetail d : billDetails) {
             Object[] row = {false, d.getDrinkName(), d.getQuantity(), d.getUnitPrice(), d.getDiscount(), d.getTotalPrice()};
             model.addRow(row);
