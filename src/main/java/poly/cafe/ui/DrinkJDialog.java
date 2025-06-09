@@ -15,6 +15,7 @@ import poly.cafe.entity.Bill;
 import poly.cafe.entity.BillDetail;
 import poly.cafe.entity.Category;
 import poly.cafe.entity.Drink;
+import poly.cafe.ui.Controller.DrinkController;
 import poly.cafe.util.XDialog;
 
 /**

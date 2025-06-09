@@ -8,6 +8,7 @@ import javax.swing.JOptionPane;
 import poly.cafe.dao.UserDAO;
 import poly.cafe.dao.impl.UserDAOImpl;
 import poly.cafe.entity.User;
+import poly.cafe.ui.Controller.LoginController;
 import poly.cafe.util.XAuth;
 import poly.cafe.util.XDialog;
 

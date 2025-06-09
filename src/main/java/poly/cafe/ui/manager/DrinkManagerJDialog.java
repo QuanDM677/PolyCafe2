@@ -15,6 +15,7 @@ import poly.cafe.dao.impl.CategoryDAOImpl;
 import poly.cafe.dao.impl.DrinkDAOImpl;
 import poly.cafe.entity.Category;
 import poly.cafe.entity.Drink;
+import poly.cafe.ui.manager.Controller.DrinkController;
 import poly.cafe.util.XDialog;
 import poly.cafe.util.XIcon;
 
@@ -867,7 +868,7 @@ public class DrinkManagerJDialog extends javax.swing.JDialog implements DrinkCon
     public void chooseFile() {
         if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             File selectedFile = fileChooser.getSelectedFile();
-            File file = XIcon.copyTo(selectedFile, "images");
+            File file = XIcon.copyTo(selectedFile, "img");
             lblImage.setToolTipText(file.getName());
             XIcon.setIcon(lblImage, file);
         }

@@ -16,6 +16,7 @@ import poly.cafe.dao.impl.BillDAOImpl;
 import poly.cafe.dao.impl.CardDAOImpl;
 import poly.cafe.entity.Bill;
 import poly.cafe.entity.Card;
+import poly.cafe.ui.Controller.SalesController;
 
 /**
  *

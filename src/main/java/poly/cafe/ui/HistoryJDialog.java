@@ -11,6 +11,7 @@ import javax.swing.table.DefaultTableModel;
 import poly.cafe.dao.BillDAO;
 import poly.cafe.dao.impl.BillDAOImpl;
 import poly.cafe.entity.Bill;
+import poly.cafe.ui.Controller.HistoryController;
 import poly.cafe.util.TimeRange;
 import poly.cafe.util.XAuth;
 import poly.cafe.util.XDate;

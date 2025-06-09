@@ -4,6 +4,7 @@
  */
 package poly.cafe.ui;
 
+import poly.cafe.ui.Controller.PolyCafeController;
 import poly.cafe.util.XAuth;
 import poly.cafe.util.XIcon;
 

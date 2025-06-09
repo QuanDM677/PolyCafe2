@@ -10,6 +10,7 @@ import javax.swing.table.DefaultTableModel;
 import poly.cafe.dao.RevenueDAO;
 import poly.cafe.dao.impl.RevenueDAOImpl;
 import poly.cafe.entity.Revenue;
+import poly.cafe.ui.manager.Controller.RevenueController;
 import poly.cafe.util.TimeRange;
 import poly.cafe.util.XDate;
 import poly.cafe.util.XDialog;

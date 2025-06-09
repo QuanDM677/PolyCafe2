@@ -14,6 +14,7 @@ import poly.cafe.dao.impl.BillDAOImpl;
 import poly.cafe.dao.impl.BillDetailDAOImpl;
 import poly.cafe.entity.Bill;
 import poly.cafe.entity.BillDetail;
+import poly.cafe.ui.Controller.BillController;
 import poly.cafe.util.XDate;
 import poly.cafe.util.XDialog;
 

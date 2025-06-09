@@ -4,7 +4,7 @@
  */
 package poly.cafe.ui;
 
-import poly.cafe.ui.WelcomeController;
+import poly.cafe.ui.Controller.WelcomeController;
 
 /**
  *

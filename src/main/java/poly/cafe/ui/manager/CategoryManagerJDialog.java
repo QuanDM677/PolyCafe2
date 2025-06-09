@@ -9,6 +9,7 @@ import javax.swing.table.DefaultTableModel;
 import poly.cafe.dao.CategoryDAO;
 import poly.cafe.dao.impl.CategoryDAOImpl;
 import poly.cafe.entity.Category;
+import poly.cafe.ui.manager.Controller.CategoryController;
 import poly.cafe.util.XDialog;
 
 /**
