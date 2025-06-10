@@ -30,6 +30,7 @@ public class BillJDialog extends javax.swing.JDialog implements BillController {
     public BillJDialog(java.awt.Frame parent, boolean modal) {
         super(parent, modal);
         initComponents();
+        this.setLocationRelativeTo(null);
     }
 
     /**
@@ -62,6 +63,7 @@ public class BillJDialog extends javax.swing.JDialog implements BillController {
         jLabel5 = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        setTitle("Phiếu bán hàng");
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowClosed(java.awt.event.WindowEvent evt) {
                 formWindowClosed(evt);
@@ -248,10 +250,11 @@ public class BillJDialog extends javax.swing.JDialog implements BillController {
     }// </editor-fold>//GEN-END:initComponents
 
     private void tblBillDetailsMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_tblBillDetailsMouseClicked
-        if (evt.getClickCount() == 2) {
+        int row = tblBillDetails.rowAtPoint(evt.getPoint());
+        if (evt.getClickCount() == 2 && row >= 0) {
+            tblBillDetails.setRowSelectionInterval(row, row); // chọn dòng vừa click
             this.updateQuantity();
         }
-
     }//GEN-LAST:event_tblBillDetailsMouseClicked
 
     private void btnRemoveActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRemoveActionPerformed
@@ -293,6 +296,7 @@ public class BillJDialog extends javax.swing.JDialog implements BillController {
     public void open() {
         this.setForm(bill);
         this.fillBillDetails();
+        this.setLocationRelativeTo(null);
     }
 
     // 4. close - hóa đơn không chi tiết thì chuyển trạng thái hủy
@@ -334,13 +338,38 @@ public class BillJDialog extends javax.swing.JDialog implements BillController {
 
     @Override
     public void updateQuantity() {
-        if (bill.getStatus() == 0) { // Chỉ khi chưa thanh toán/hủy
+        if (bill.getStatus() == 0) {
+            int row = tblBillDetails.getSelectedRow();
+            if (row < 0) {
+                return;
+            }
+            // Lấy ID từ bảng
+            Object idObj = tblBillDetails.getValueAt(row, 1); // cột 1 là ID
+            if (idObj == null) {
+                return;
+            }
+            int billDetailId = Integer.parseInt(idObj.toString());
+            // Tìm BillDetail theo ID
+            BillDetail detail = billDetails.stream()
+                    .filter(d -> d.getId() == billDetailId)
+                    .findFirst().orElse(null);
+            if (detail == null) {
+                return;
+            }
+
             String input = XDialog.prompt("Số lượng mới?");
             if (input != null && !input.isEmpty()) {
-                BillDetail detail = billDetails.get(tblBillDetails.getSelectedRow());
-                detail.setQuantity(Integer.parseInt(input));
-                billDetailDao.update(detail);
-                this.fillBillDetails();
+                try {
+                    int qty = Integer.parseInt(input);
+                    if (qty < 1) {
+                        throw new NumberFormatException();
+                    }
+                    detail.setQuantity(qty);
+                    billDetailDao.update(detail);
+                    this.fillBillDetails();
+                } catch (NumberFormatException ex) {
+                    XDialog.warning("Số lượng phải là số nguyên dương!");
+                }
             }
         }
     }
@@ -391,9 +420,17 @@ public class BillJDialog extends javax.swing.JDialog implements BillController {
     private void fillBillDetails() {
         billDetails = billDetailDao.findByBillId(bill.getId());
         DefaultTableModel model = (DefaultTableModel) tblBillDetails.getModel();
-        model.setRowCount(0); // Sửa tại đây
+        model.setRowCount(0);
         for (BillDetail d : billDetails) {
-            Object[] row = {false, d.getDrinkName(), d.getQuantity(), d.getUnitPrice(), d.getDiscount(), d.getTotalPrice()};
+            Object[] row = {
+                false, // Checkbox
+                d.getId(), // Mã phiếu
+                d.getDrinkName(), // Đồ uống
+                d.getUnitPrice(), // Đơn giá
+                String.format("%.0f%%", d.getDiscount() * 100), // Giảm giá
+                d.getQuantity(), // Số lượng
+                d.getTotalPrice() // Thành tiền
+            };
             model.addRow(row);
         }
     }

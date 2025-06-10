@@ -54,4 +54,14 @@ public class XDate {
         cal.set(Calendar.MILLISECOND, 999);
         return cal.getTime();
     }
+    
+    public static Date atBeginOfDay(Date date) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(date);
+        cal.set(Calendar.HOUR_OF_DAY, 00);
+        cal.set(Calendar.MINUTE, 00);
+        cal.set(Calendar.SECOND,00);
+        cal.set(Calendar.MILLISECOND, 000);
+        return cal.getTime();
+    }
 }

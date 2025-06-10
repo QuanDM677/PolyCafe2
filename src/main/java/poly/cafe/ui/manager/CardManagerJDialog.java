@@ -16,7 +16,7 @@ import poly.cafe.util.XDialog;
  *
  * @author PC
  */
-public class CardManagerJDialog extends javax.swing.JDialog implements CardController  {
+public class CardManagerJDialog extends javax.swing.JDialog implements CardController {
 
     /**
      * Creates new form CardManagerJDialog
@@ -35,6 +35,7 @@ public class CardManagerJDialog extends javax.swing.JDialog implements CardContr
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        buttonGroup1 = new javax.swing.ButtonGroup();
         jTabbedPane1 = new javax.swing.JTabbedPane();
         jPanel1 = new javax.swing.JPanel();
         jScrollPane1 = new javax.swing.JScrollPane();
@@ -60,6 +61,7 @@ public class CardManagerJDialog extends javax.swing.JDialog implements CardContr
         btnLast = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        setTitle("Thẻ định danh");
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowOpened(java.awt.event.WindowEvent evt) {
                 formWindowOpened(evt);
@@ -143,10 +145,14 @@ public class CardManagerJDialog extends javax.swing.JDialog implements CardContr
 
         jLabel2.setText("Trạng thái");
 
+        buttonGroup1.add(rdoHoatDong);
+        rdoHoatDong.setSelected(true);
         rdoHoatDong.setText("Đang hoạt động");
 
+        buttonGroup1.add(rdoLoi);
         rdoLoi.setText("Lỗi");
 
+        buttonGroup1.add(rdoThatBai);
         rdoThatBai.setText("Thất bại");
 
         jPanel3.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.RAISED));
@@ -360,8 +366,6 @@ public class CardManagerJDialog extends javax.swing.JDialog implements CardContr
     CardDAO dao = new CardDAOImpl();
     List<Card> items = List.of();
 
-    // ... code khởi tạo giao diện như bạn đã làm với Category
-
     public void open() {
         this.setLocationRelativeTo(null);
         this.fillToTable();
@@ -385,18 +389,58 @@ public class CardManagerJDialog extends javax.swing.JDialog implements CardContr
 
     private String getStatusText(int status) {
         switch (status) {
-            case 0: return "Đang hoạt động";
-            case 1: return "Lỗi";
-            case 2: return "Thất bại";
-            default: return "Không xác định";
+            case 0:
+                return "Đang hoạt động";
+            case 1:
+                return "Lỗi";
+            case 2:
+                return "Thất bại";
+            default:
+                return "Không xác định";
         }
     }
 
+    // --- Validate dữ liệu thẻ ---
+    private boolean validateCard(Card entity) {
+        String idText = txtId.getText().trim();
+        if (idText.isEmpty()) {
+            XDialog.warning("Mã thẻ không được để trống!");
+            txtId.requestFocus();
+            return false;
+        }
+        // Không được chứa chữ cái
+        if (!idText.matches("\\d+")) {
+            XDialog.warning("Mã thẻ chỉ được chứa số, không được chứa chữ cái!");
+            txtId.requestFocus();
+            return false;
+        }
+        int id = Integer.parseInt(idText);
+        if (id <= 0) {
+            XDialog.warning("Mã thẻ phải là số nguyên dương!");
+            txtId.requestFocus();
+            return false;
+        }
+        if (!rdoHoatDong.isSelected() && !rdoLoi.isSelected() && !rdoThatBai.isSelected()) {
+            XDialog.warning("Vui lòng chọn trạng thái cho thẻ!");
+            rdoHoatDong.requestFocus();
+            return false;
+        }
+        return true;
+    }
+
+    // --- Kiểm tra trùng mã thẻ ---
+    private boolean isDuplicateId(Integer id) {
+        return dao.findById(id) != null;
+    }
+
     public void edit() {
-        Card entity = items.get(tblCards.getSelectedRow());
-        this.setForm(entity);
-        this.setEditable(true);
-        jTabbedPane1.setSelectedIndex(1);
+        int row = tblCards.getSelectedRow();
+        if (row >= 0 && items != null && row < items.size()) {
+            Card entity = items.get(row);
+            setForm(entity);
+            setEditable(true);
+            jTabbedPane1.setSelectedIndex(1);
+        }
     }
 
     public void checkAll() {
@@ -414,57 +458,110 @@ public class CardManagerJDialog extends javax.swing.JDialog implements CardContr
     }
 
     public void deleteCheckedItems() {
-        if (XDialog.confirm("Bạn thực sự muốn xóa các mục chọn?")) {
+        int cnt = 0;
+        for (int i = 0; i < tblCards.getRowCount(); i++) {
+            if ((Boolean) tblCards.getValueAt(i, 2)) {
+                cnt++;
+            }
+        }
+        if (cnt == 0) {
+            XDialog.alert("Vui lòng chọn ít nhất một thẻ để xóa!");
+            return;
+        }
+        if (XDialog.confirm("Bạn thực sự muốn xóa " + cnt + " thẻ đã chọn?")) {
+            int deleted = 0;
             for (int i = 0; i < tblCards.getRowCount(); i++) {
                 if ((Boolean) tblCards.getValueAt(i, 2)) {
-                    dao.deleteById((Integer) items.get(i).getId());
+                    try {
+                        dao.deleteById(items.get(i).getId());
+                        deleted++;
+                    } catch (Exception ex) {
+                        XDialog.error("Lỗi khi xóa mã: " + items.get(i).getId() + " - " + ex.getMessage());
+                    }
                 }
             }
             this.fillToTable();
+            XDialog.success("Đã xóa " + deleted + " thẻ!");
         }
     }
 
     public void setForm(Card entity) {
         txtId.setText(entity.getId() != null ? entity.getId().toString() : "");
-        switch (entity.getStatus()) {
-            case 0: rdoHoatDong.setSelected(true); break;
-            case 1: rdoLoi.setSelected(true); break;
-            case 2: rdoThatBai.setSelected(true); break;
-        }
+        rdoHoatDong.setSelected(entity.getStatus() == 0);
+        rdoLoi.setSelected(entity.getStatus() == 1);
+        rdoThatBai.setSelected(entity.getStatus() == 2);
     }
 
     public Card getForm() {
         Card entity = new Card();
-        entity.setId(txtId.getText().isEmpty() ? null : Integer.valueOf(txtId.getText()));
+        try {
+            entity.setId(txtId.getText().isEmpty() ? null : Integer.valueOf(txtId.getText()));
+        } catch (NumberFormatException ex) {
+            entity.setId(null);
+        }
         entity.setStatus(rdoHoatDong.isSelected() ? 0 : rdoLoi.isSelected() ? 1 : 2);
         return entity;
     }
 
     public void create() {
         Card entity = this.getForm();
-        dao.create(entity);
-        this.fillToTable();
-        this.clear();
+        if (!validateCard(entity)) {
+            return;
+        }
+        if (isDuplicateId(entity.getId())) {
+            XDialog.error("Mã thẻ đã tồn tại. Vui lòng nhập mã khác!");
+            txtId.requestFocus();
+            return;
+        }
+        try {
+            dao.create(entity);
+            this.fillToTable();
+            this.clear();
+            XDialog.success("Thêm thẻ thành công!");
+        } catch (Exception ex) {
+            XDialog.error("Lỗi khi thêm thẻ: " + ex.getMessage());
+        }
     }
 
     public void update() {
         Card entity = this.getForm();
-        dao.update(entity);
-        this.fillToTable();
+        if (!validateCard(entity)) {
+            return;
+        }
+        try {
+            dao.update(entity);
+            this.fillToTable();
+            XDialog.success("Cập nhật thẻ thành công!");
+        } catch (Exception ex) {
+            XDialog.error("Lỗi khi cập nhật thẻ: " + ex.getMessage());
+        }
     }
 
     public void delete() {
         if (XDialog.confirm("Bạn thực sự muốn xóa?")) {
-            Integer id = Integer.valueOf(txtId.getText());
-            dao.deleteById(id);
-            this.fillToTable();
-            this.clear();
+            Integer id = null;
+            try {
+                id = Integer.valueOf(txtId.getText());
+            } catch (NumberFormatException ex) {
+                XDialog.warning("Mã thẻ không hợp lệ!");
+                txtId.requestFocus();
+                return;
+            }
+            try {
+                dao.deleteById(id);
+                this.fillToTable();
+                this.clear();
+                XDialog.success("Đã xóa thẻ!");
+            } catch (Exception ex) {
+                XDialog.error("Lỗi khi xóa thẻ: " + ex.getMessage());
+            }
         }
     }
 
     public void clear() {
         this.setForm(new Card());
         this.setEditable(false);
+        tblCards.clearSelection();
     }
 
     public void setEditable(boolean editable) {
@@ -474,10 +571,11 @@ public class CardManagerJDialog extends javax.swing.JDialog implements CardContr
         btnDelete.setEnabled(editable);
 
         int rowCount = tblCards.getRowCount();
-        btnFIrst.setEnabled(editable && rowCount > 0);
-        btnBack.setEnabled(editable && rowCount > 0);
-        btnNext.setEnabled(editable && rowCount > 0);
-        btnLast.setEnabled(editable && rowCount > 0);
+        boolean nav = rowCount > 0;
+        btnFIrst.setEnabled(nav);
+        btnBack.setEnabled(nav);
+        btnNext.setEnabled(nav);
+        btnLast.setEnabled(nav);
     }
 
     public void moveFirst() {
@@ -497,17 +595,20 @@ public class CardManagerJDialog extends javax.swing.JDialog implements CardContr
     }
 
     public void moveTo(int index) {
-        if (index < 0) {
-            this.moveLast();
-        } else if (index >= tblCards.getRowCount()) {
-            this.moveFirst();
-        } else {
-            tblCards.clearSelection();
-            tblCards.setRowSelectionInterval(index, index);
-            this.edit();
+        int rowCount = tblCards.getRowCount();
+        if (rowCount == 0) {
+            return;
         }
+        if (index < 0) {
+            index = rowCount - 1;
+        }
+        if (index >= rowCount) {
+            index = 0;
+        }
+        tblCards.setRowSelectionInterval(index, index);
+        edit();
     }
-    
+
     /**
      * @param args the command line arguments
      */
@@ -562,6 +663,7 @@ public class CardManagerJDialog extends javax.swing.JDialog implements CardContr
     private javax.swing.JButton btnLast;
     private javax.swing.JButton btnNext;
     private javax.swing.JButton btnUpdate;
+    private javax.swing.ButtonGroup buttonGroup1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JPanel jPanel1;

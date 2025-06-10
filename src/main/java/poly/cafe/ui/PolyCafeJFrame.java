@@ -4,6 +4,7 @@
  */
 package poly.cafe.ui;
 
+import java.io.File;
 import poly.cafe.ui.Controller.PolyCafeController;
 import poly.cafe.util.XAuth;
 import poly.cafe.util.XIcon;
@@ -48,6 +49,7 @@ public final class PolyCafeJFrame extends javax.swing.JFrame implements PolyCafe
         jLabel3 = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setTitle("PoLyCafe trang chủ");
 
         pnlCenter.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(255, 153, 0)));
         pnlCenter.setForeground(new java.awt.Color(255, 153, 0));
@@ -173,16 +175,20 @@ public final class PolyCafeJFrame extends javax.swing.JFrame implements PolyCafe
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(pnlCenter, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED))
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(lblFullname, javax.swing.GroupLayout.PREFERRED_SIZE, 158, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(88, 88, 88))
+                    .addGroup(layout.createSequentialGroup()
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(lblPhoto)
-                            .addComponent(lblFullname, javax.swing.GroupLayout.PREFERRED_SIZE, 134, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGap(68, 68, 68)))
+                            .addGroup(layout.createSequentialGroup()
+                                .addGap(92, 92, 92)
+                                .addComponent(lblPhoto))
+                            .addGroup(layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addComponent(pnlCenter, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
                 .addComponent(pnlManager, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addContainerGap())
         );
@@ -270,7 +276,7 @@ public final class PolyCafeJFrame extends javax.swing.JFrame implements PolyCafe
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                new PolyCafeJFrame().setVisible(true);
+                new PolyCafeJFrame().setVisible(true); // <- JFrame luôn được show ra
             }
         });
     }
@@ -283,7 +289,28 @@ public final class PolyCafeJFrame extends javax.swing.JFrame implements PolyCafe
         this.showWelcomeJDialog(this);
         this.showLoginJDialog(this);
 
-        XIcon.setIcon(lblPhoto, "photos/" + XAuth.user.getPhoto());
+        String photoName = XAuth.user.getPhoto();
+        if (photoName == null || photoName.isBlank()) {
+            photoName = "trump-small.png"; // hoặc ảnh mặc định
+        }
+        File file = new File("photos", photoName);
+        if (file.exists()) {
+            XIcon.setIcon(lblPhoto, file);
+        } else {
+            // Thử tìm trong resource icons
+            java.net.URL url = getClass().getResource("/poly/cafe/icons/" + photoName);
+            if (url == null) {
+                // Thử tiếp trong resource img (tuỳ project)
+                url = getClass().getResource("/img/" + photoName);
+            }
+            if (url != null) {
+                lblPhoto.setIcon(new javax.swing.ImageIcon(url));
+            } else {
+                // fallback ảnh mặc định
+                java.net.URL defaultUrl = getClass().getResource("/poly/cafe/icons/trump-small.png");
+                lblPhoto.setIcon(defaultUrl != null ? new javax.swing.ImageIcon(defaultUrl) : null);
+            }
+        }
         lblFullname.setText(XAuth.user.getFullname());
 
         if (XAuth.user.isManager()) {

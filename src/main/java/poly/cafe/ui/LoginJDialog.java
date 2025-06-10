@@ -16,7 +16,7 @@ import poly.cafe.util.XDialog;
  *
  * @author PC
  */
-public class LoginJDialog extends javax.swing.JDialog implements LoginController{
+public class LoginJDialog extends javax.swing.JDialog implements LoginController {
 
     /**
      * Creates new form LoginJDialog
@@ -46,6 +46,7 @@ public class LoginJDialog extends javax.swing.JDialog implements LoginController
         txtPassword = new javax.swing.JPasswordField();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        setTitle("Đăng nhập");
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowOpened(java.awt.event.WindowEvent evt) {
                 formWindowOpened(evt);
@@ -226,20 +227,45 @@ public class LoginJDialog extends javax.swing.JDialog implements LoginController
     }
 
     public void login() {
-        String username = txtUsername.getText();
+        String username = txtUsername.getText().trim();
         String password = new String(txtPassword.getPassword());
+
+        if (username.isEmpty()) {
+            XDialog.alert("Tên đăng nhập không được để trống!");
+            txtUsername.requestFocus();
+            return;
+        }
+        if (password.isEmpty()) {
+            XDialog.alert("Mật khẩu không được để trống!");
+            txtPassword.requestFocus();
+            return;
+        }
+
         UserDAO dao = new UserDAOImpl();
         User user = dao.findById(username);
+
         if (user == null) {
-            XDialog.alert("Sai tên đăng nhập!");
-        } else if (!password.equals(user.getPassword())) {
-            XDialog.alert("Sai mật khẩu đăng nhập!");
-        } else if (!user.isEnabled()) {
-            XDialog.alert("Tài khoản của bạn đang tạm dừng!");
-        } else {
-            XAuth.user = user; // duy trì user đăng nhập 
-            this.dispose();
+            XDialog.alert("Sai tên đăng nhập! (Tên đăng nhập phân biệt chữ hoa chữ thường)");
+            txtUsername.requestFocus();
+            return;
         }
+        // Dòng này đảm bảo nhập đúng hoa/thường
+        if (!username.equals(user.getUsername())) {
+            XDialog.alert("Sai tên đăng nhập! (Tên đăng nhập phân biệt chữ hoa chữ thường)");
+            txtUsername.requestFocus();
+            return;
+        }
+        if (!password.equals(user.getPassword())) {
+            XDialog.alert("Sai mật khẩu đăng nhập! (Mật khẩu phân biệt chữ hoa chữ thường)");
+            txtPassword.requestFocus();
+            return;
+        }
+        if (!user.isEnabled()) {
+            XDialog.alert("Tài khoản của bạn đang tạm dừng!");
+            return;
+        }
+        XAuth.user = user;
+        this.dispose();
     }
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnDangNhap;

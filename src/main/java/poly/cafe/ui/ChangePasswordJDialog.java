@@ -47,6 +47,7 @@ public class ChangePasswordJDialog extends javax.swing.JDialog implements Change
         txtUsername = new javax.swing.JTextField();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        setTitle("Đổi mật khẩu");
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowOpened(java.awt.event.WindowEvent evt) {
                 formWindowOpened(evt);
@@ -182,21 +183,45 @@ public class ChangePasswordJDialog extends javax.swing.JDialog implements Change
 
     @Override
     public void save() {
-        String username = txtUsername.getText();
+        String username = txtUsername.getText().trim();
         String password = new String(txtPassword.getPassword());
         String newpass = new String(txtNewpass.getPassword());
         String confirm = new String(txtConfirm.getPassword());
+
+        if (password.isBlank()) {
+            XDialog.alert("Mật khẩu hiện tại không được để trống!");
+            txtPassword.requestFocus();
+            return;
+        }
+        if (newpass.isBlank()) {
+            XDialog.alert("Mật khẩu mới không được để trống!");
+            txtNewpass.requestFocus();
+            return;
+        }
+        if (confirm.isBlank()) {
+            XDialog.alert("Xác nhận mật khẩu không được để trống!");
+            txtConfirm.requestFocus();
+            return;
+        }
         if (!newpass.equals(confirm)) {
             XDialog.alert("Xác nhận mật khẩu không đúng!");
-        } else if (!username.equals(XAuth.user.getUsername())) {
-            XDialog.alert("Sai tên đăng nhập!");
-        } else if (!password.equals(XAuth.user.getPassword())) {
-            XDialog.alert("Sai mật khẩu!");
-        } else {
-            XAuth.user.setPassword(newpass);
-            dao.update(XAuth.user);
-            XDialog.alert("Đổi mật khẩu thành công!");
+            txtConfirm.requestFocus();
+            return;
         }
+        if (!username.equals(XAuth.user.getUsername())) {
+            XDialog.alert("Sai tên đăng nhập!");
+            txtUsername.requestFocus();
+            return;
+        }
+        if (!password.equals(XAuth.user.getPassword())) {
+            XDialog.alert("Sai mật khẩu!");
+            txtPassword.requestFocus();
+            return;
+        }
+        // Nếu hợp lệ, đổi mật khẩu
+        XAuth.user.setPassword(newpass);
+        dao.update(XAuth.user);
+        XDialog.alert("Đổi mật khẩu thành công!");
     }
 
     /**

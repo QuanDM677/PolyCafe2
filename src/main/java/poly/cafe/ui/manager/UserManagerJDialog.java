@@ -73,6 +73,7 @@ public class UserManagerJDialog extends javax.swing.JDialog implements UserContr
         btnLast = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        setTitle("Người sử dụng");
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowOpened(java.awt.event.WindowEvent evt) {
                 formWindowOpened(evt);
@@ -189,6 +190,7 @@ public class UserManagerJDialog extends javax.swing.JDialog implements UserContr
         jLabel6.setText("Vai trò");
 
         buttonGroup1.add(rdoQuanLy);
+        rdoQuanLy.setSelected(true);
         rdoQuanLy.setText("Quản lý");
 
         buttonGroup1.add(rdoNhanVien);
@@ -197,6 +199,7 @@ public class UserManagerJDialog extends javax.swing.JDialog implements UserContr
         jLabel7.setText("Trạng thái");
 
         buttonGroup2.add(rdoHoatDong);
+        rdoHoatDong.setSelected(true);
         rdoHoatDong.setText("Hoạt động");
 
         buttonGroup2.add(rdoTamDung);
@@ -553,27 +556,30 @@ public class UserManagerJDialog extends javax.swing.JDialog implements UserContr
         txtMatKhau.setText(entity.getPassword());
         txtXacNhanMatKhau.setText(entity.getPassword());
         txtHoVaTen.setText(entity.getFullname());
+
         // Ảnh
-        if (entity.getPhoto() != null && !entity.getPhoto().isBlank()) {
-            lblPhoto.setToolTipText(entity.getPhoto());
-            java.io.File imgFile = new java.io.File("images", entity.getPhoto());
-            if (imgFile.exists()) {
-                lblPhoto.setIcon(new javax.swing.ImageIcon(imgFile.getAbsolutePath()));
-            } else {
-                java.net.URL iconURL = getClass().getResource("/img/photo.png");
-                lblPhoto.setIcon(iconURL != null ? new javax.swing.ImageIcon(iconURL) : null);
-            }
+        String imageName = (entity.getPhoto() != null && !entity.getPhoto().isBlank()) ? entity.getPhoto() : "photo.png";
+        lblPhoto.setToolTipText(imageName);
+
+        // Ưu tiên file ngoài thư mục images, nếu không có thì lấy resource
+        java.io.File imgFile = new java.io.File("images", imageName);
+        if (imgFile.exists()) {
+            lblPhoto.setIcon(new javax.swing.ImageIcon(imgFile.getAbsolutePath()));
         } else {
-            lblPhoto.setToolTipText("photo.png");
-            java.net.URL iconURL = getClass().getResource("/img/photo.png");
-            lblPhoto.setIcon(iconURL != null ? new javax.swing.ImageIcon(iconURL) : null);
+            java.net.URL iconURL = getClass().getResource("/img/NiggaCat.png");
+            if (iconURL != null) {
+                lblPhoto.setIcon(new javax.swing.ImageIcon(iconURL));
+            } else {
+                // Nếu vẫn không có ảnh, set icon về null để tránh lỗi hiển thị
+                lblPhoto.setIcon(null);
+            }
         }
-        // Vai trò
-        rdoQuanLy.setSelected(entity.isManager());
-        rdoNhanVien.setSelected(!entity.isManager());
-        // Trạng thái
-        rdoHoatDong.setSelected(entity.isEnabled());
-        rdoTamDung.setSelected(!entity.isEnabled());
+
+        // Vai trò, Trạng thái (giữ nguyên phần này)
+        rdoQuanLy.setSelected(!entity.isManager());
+        rdoNhanVien.setSelected(entity.isManager());
+        rdoHoatDong.setSelected(!entity.isEnabled());
+        rdoTamDung.setSelected(entity.isEnabled());
     }
 
     public void open() {

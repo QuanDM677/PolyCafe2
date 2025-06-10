@@ -21,6 +21,8 @@ import poly.cafe.util.XDialog;
  */
 public class RevenueManagerJDialog extends javax.swing.JDialog implements RevenueController {
 
+    private boolean isFilterButton = false;
+
     /**
      * Creates new form RevenueManagerJDialog
      */
@@ -53,6 +55,7 @@ public class RevenueManagerJDialog extends javax.swing.JDialog implements Revenu
         cboTimeRanges3 = new javax.swing.JComboBox<>();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        setTitle("Doanh thu");
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowOpened(java.awt.event.WindowEvent evt) {
                 formWindowOpened(evt);
@@ -198,7 +201,10 @@ public class RevenueManagerJDialog extends javax.swing.JDialog implements Revenu
 
     private void btnFilter2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnFilter2ActionPerformed
         // TODO add your handling code here:
+        isFilterButton = true;
         this.fillRevenue();
+        isFilterButton = false; // reset sau khi lọc xong (có thể không cần vì fillRevenue gọi xong là xong)
+
     }//GEN-LAST:event_btnFilter2ActionPerformed
 
     private void cboTimeRanges3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cboTimeRanges3ActionPerformed
@@ -273,11 +279,18 @@ public class RevenueManagerJDialog extends javax.swing.JDialog implements Revenu
 
     @Override
     public void fillRevenue() {
-        if (!validateFilter()) {
-            return;
-        }
+        // Bỏ validateFilter() ở đây, chỉ cần xử lý nếu rỗng thì lấy mặc định
         Date begin = XDate.parse(txtBegin.getText(), "MM/dd/yyyy");
         Date end = XDate.parse(txtEnd.getText(), "MM/dd/yyyy");
+
+        // Nếu ngày bị rỗng hoặc null thì lấy ngày mặc định (ví dụ hôm nay)
+        if (begin == null) {
+            begin = new Date();
+        }
+        if (end == null) {
+            end = new Date();
+        }
+
         if (end != null) {
             java.util.Calendar cal = java.util.Calendar.getInstance();
             cal.setTime(end);
@@ -300,7 +313,9 @@ public class RevenueManagerJDialog extends javax.swing.JDialog implements Revenu
         DefaultTableModel model = (DefaultTableModel) tblByCategory.getModel();
         model.setRowCount(0);
         if (items == null || items.isEmpty()) {
-            XDialog.info("Không có dữ liệu doanh thu theo loại trong khoảng thời gian này!");
+            if (isFilterButton) {
+                XDialog.info("Không có dữ liệu doanh thu theo loại trong khoảng thời gian này!");
+            }
             return;
         }
         items.forEach(item -> {
@@ -321,7 +336,9 @@ public class RevenueManagerJDialog extends javax.swing.JDialog implements Revenu
         DefaultTableModel model = (DefaultTableModel) tblByUser.getModel();
         model.setRowCount(0);
         if (items == null || items.isEmpty()) {
-            XDialog.info("Không có dữ liệu doanh thu theo nhân viên trong khoảng thời gian này!");
+            if (isFilterButton) {
+                XDialog.info("Không có dữ liệu doanh thu theo nhân viên trong khoảng thời gian này!");
+            }
             return;
         }
         items.forEach(item -> {

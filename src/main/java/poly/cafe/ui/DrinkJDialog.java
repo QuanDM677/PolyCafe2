@@ -53,6 +53,7 @@ public class DrinkJDialog extends javax.swing.JDialog implements DrinkController
         tblDrinks = new javax.swing.JTable();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        setTitle("Đồ uống");
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowOpened(java.awt.event.WindowEvent evt) {
                 formWindowOpened(evt);
@@ -203,15 +204,26 @@ public class DrinkJDialog extends javax.swing.JDialog implements DrinkController
                     throw new NumberFormatException();
                 }
                 Drink drink = drinks.get(drinkRow);
-                BillDetail detail = new BillDetail();
-                detail.setBillId(bill.getId());
-                detail.setDiscount(drink.getDiscount());
-                detail.setDrinkId(drink.getId());
-                detail.setQuantity(qty);
-                detail.setUnitPrice(drink.getUnitPrice());
-                new BillDetailDAOImpl().create(detail);
-                XDialog.alert("Đã thêm đồ uống vào phiếu!");
-                this.dispose(); // <--- Thêm dòng này để tự đóng dialog!
+                BillDetailDAOImpl billDetailDao = new BillDetailDAOImpl();
+                // Sử dụng đúng kiểu dữ liệu billId và drinkId
+                BillDetail existingDetail = billDetailDao.findByBillIdAndDrinkId(bill.getId(), drink.getId());
+                if (existingDetail != null) {
+                    // Đã có, cộng thêm số lượng
+                    existingDetail.setQuantity(existingDetail.getQuantity() + qty);
+                    billDetailDao.update(existingDetail);
+                    XDialog.alert("Đã cập nhật số lượng đồ uống trong phiếu!");
+                } else {
+                    // Chưa có, thêm mới
+                    BillDetail detail = new BillDetail();
+                    detail.setBillId(bill.getId());
+                    detail.setDiscount(drink.getDiscount());
+                    detail.setDrinkId(drink.getId());
+                    detail.setQuantity(qty);
+                    detail.setUnitPrice(drink.getUnitPrice());
+                    billDetailDao.create(detail);
+                    XDialog.alert("Đã thêm đồ uống vào phiếu!");
+                }
+                this.dispose();
             } catch (NumberFormatException ex) {
                 XDialog.alert("Số lượng phải là số nguyên dương!");
             }

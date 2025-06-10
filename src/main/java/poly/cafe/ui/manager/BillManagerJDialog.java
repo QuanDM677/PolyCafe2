@@ -9,11 +9,16 @@ import java.util.List;
 import javax.swing.table.DefaultTableModel;
 import poly.cafe.dao.BillDAO;
 import poly.cafe.dao.BillDetailDAO;
+import poly.cafe.dao.CardDAO;
+import poly.cafe.dao.UserDAO;
 import poly.cafe.dao.impl.BillDAOImpl;
 import poly.cafe.dao.impl.BillDetailDAOImpl;
+import poly.cafe.dao.impl.CardDAOImpl;
+import poly.cafe.dao.impl.UserDAOImpl;
 import poly.cafe.entity.Bill;
 import poly.cafe.entity.BillDetail;
 import poly.cafe.util.TimeRange;
+import poly.cafe.util.XAuth;
 import poly.cafe.util.XDate;
 import poly.cafe.util.XDialog;
 
@@ -82,6 +87,7 @@ public class BillManagerJDialog extends javax.swing.JDialog {
         tblBillDetails = new javax.swing.JTable();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        setTitle("Phiếu bán hàng");
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowOpened(java.awt.event.WindowEvent evt) {
                 formWindowOpened(evt);
@@ -341,6 +347,7 @@ public class BillManagerJDialog extends javax.swing.JDialog {
         jLabel8.setText("Người tạo");
 
         buttonGroup1.add(rdoBaoTri);
+        rdoBaoTri.setSelected(true);
         rdoBaoTri.setText("Đang phục vụ");
 
         buttonGroup1.add(rdoHoanThanh);
@@ -536,6 +543,23 @@ public class BillManagerJDialog extends javax.swing.JDialog {
     List<Bill> items = List.of(); // phiếu bán hàng 
     BillDetailDAO billDetailDao = new BillDetailDAOImpl();
     List<BillDetail> details = List.of(); // chi tiết phiếu bán hàng 
+    private final CardDAO cardDAO = new CardDAOImpl();
+    private final UserDAO userDAO = new UserDAOImpl();
+
+// Kiểm tra thẻ số có tồn tại
+    private boolean isValidCard(String cardIdStr) {
+        try {
+            int cardId = Integer.parseInt(cardIdStr);
+            return cardDAO.findById(cardId) != null;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+// Kiểm tra người tạo có tồn tại
+    private boolean isValidUser(String username) {
+        return userDAO.findById(username) != null;
+    }
 
     public void open() {
         this.setLocationRelativeTo(null);
@@ -594,25 +618,35 @@ public class BillManagerJDialog extends javax.swing.JDialog {
     }
 
     private boolean validateForm() {
-        // Nếu txtId không cho nhập khi tạo mới (mã tự tăng), không kiểm tra nữa
-
         // Thẻ số
-        if (txtTheSo.getText().isBlank()) {
-            XDialog.warning("Thẻ số không được để trống!");
+        String cardIdStr = txtTheSo.getText().trim();
+        if (cardIdStr.isBlank()) {
+            XDialog.warning("Vui lòng nhập thẻ số!");
             txtTheSo.requestFocus();
             return false;
         }
+        int cardId;
         try {
-            Integer.parseInt(txtTheSo.getText());
-        } catch (Exception e) {
-            XDialog.warning("Thẻ số phải là số nguyên hợp lệ!");
+            cardId = Integer.parseInt(cardIdStr);
+            if (cardId <= 0) {
+                XDialog.warning("Thẻ số phải là số nguyên dương!");
+                txtTheSo.requestFocus();
+                return false;
+            }
+        } catch (NumberFormatException e) {
+            XDialog.warning("Thẻ số phải là số nguyên dương!");
+            txtTheSo.requestFocus();
+            return false;
+        }
+        if (!isValidCard(cardIdStr)) {
+            XDialog.warning("Thẻ số này không tồn tại trong hệ thống!");
             txtTheSo.requestFocus();
             return false;
         }
 
         // Thời điểm tạo
         if (txtThoiDiemTao.getText().isBlank()) {
-            XDialog.warning("Thời điểm tạo không được để trống!");
+            XDialog.warning("Vui lòng nhập thời điểm tạo!");
             txtThoiDiemTao.requestFocus();
             return false;
         }
@@ -631,8 +665,14 @@ public class BillManagerJDialog extends javax.swing.JDialog {
         }
 
         // Người tạo
-        if (txtNguoiTao.getText().isBlank()) {
-            XDialog.warning("Người tạo không được để trống!");
+        String username = txtNguoiTao.getText().trim();
+        if (username.isBlank()) {
+            XDialog.warning("Vui lòng nhập người tạo!");
+            txtNguoiTao.requestFocus();
+            return false;
+        }
+        if (!isValidUser(username)) {
+            XDialog.warning("Người tạo này không tồn tại trong hệ thống!");
             txtNguoiTao.requestFocus();
             return false;
         }
@@ -704,6 +744,7 @@ public class BillManagerJDialog extends javax.swing.JDialog {
 
     public void clear() {
         setForm(new Bill());
+        txtNguoiTao.setText(XAuth.user.getUsername());
         setEditable(false);
     }
 

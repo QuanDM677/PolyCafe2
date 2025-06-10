@@ -7,6 +7,7 @@ package poly.cafe.ui;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Frame;
+import java.awt.GraphicsEnvironment;
 import java.awt.event.ActionEvent;
 import java.util.List;
 import javax.swing.JButton;
@@ -34,6 +35,7 @@ public class SalesJDialog extends javax.swing.JDialog implements SalesController
 
     @Override
     public void open() {
+        this.setSize(700, 650); // Đặt kích thước 400x400
         this.setLocationRelativeTo(null);
         this.loadCards(); // tải và hiển thị các thẻ lên cửa sổ bán hàng 
     }
@@ -47,23 +49,66 @@ public class SalesJDialog extends javax.swing.JDialog implements SalesController
         dialog.setVisible(true);
     }
 
-    private void loadCards() {// tải và hiển thị các thẻ lên cửa sổ bán hàng 
+    private void loadCards() {
         CardDAO dao = new CardDAOImpl();
         List<Card> cards = dao.findAll();
         pnlCard.removeAll();
         cards.forEach(card -> pnlCard.add(this.createButton(card)));
+        pnlCard.revalidate();
+        pnlCard.repaint();
     }
 
-    private JButton createButton(Card card) { // tạo Jbutton cho thẻ 
+    private JButton createButton(Card card) {
         JButton btnCard = new JButton();
         btnCard.setText(String.format("Card #%d", card.getId()));
         btnCard.setPreferredSize(new Dimension(0, 80));
-        btnCard.setEnabled(card.getStatus() == 0);
-        btnCard.setBackground(btnCard.isEnabled() ? Color.GREEN : Color.GRAY);
+        btnCard.setOpaque(true); // THÊM DÒNG NÀY
+        btnCard.setContentAreaFilled(true); // VÀ DÒNG NÀY
+
+        // Kiểm tra phiếu bán hàng đang phục vụ
+        BillDAO billDAO = new BillDAOImpl();
+        Bill servicingBill = billDAO.findServicingByCardId(card.getId());
+
+        // Xác định trạng thái nút và màu nền
+        boolean isEnabled = card.getStatus() == 0;
+        btnCard.setEnabled(isEnabled);
+
+        if (!isEnabled) {
+            btnCard.setBackground(Color.GRAY); // Thẻ không hoạt động
+        } else if (servicingBill == null) {
+            btnCard.setBackground(Color.WHITE); // Thẻ hoạt động, chưa có bill
+        } else {
+            btnCard.setBackground(Color.GREEN); // Thẻ hoạt động, có bill đang phục vụ
+        }
+
         btnCard.setActionCommand(String.valueOf(card.getId()));
         btnCard.addActionListener((ActionEvent e) -> {
+            if (!btnCard.isEnabled()) {
+                return;
+            }
             int cardId = Integer.parseInt(e.getActionCommand());
-            SalesJDialog.this.showBillJDialog(cardId);
+
+            if (servicingBill != null) {
+                // Đã có bill đang phục vụ, mở bill
+                SalesJDialog.this.showBillJDialog(cardId);
+            } else {
+                // Chưa có bill, tự tạo
+                Bill newBill = new Bill();
+                newBill.setCardId(cardId);
+                newBill.setUsername(poly.cafe.util.XAuth.user.getUsername());
+                newBill.setCheckin(new java.util.Date());
+                newBill.setStatus(0); // Đang phục vụ
+                billDAO.create(newBill);
+
+                // Sau khi tạo xong, load lại bill vừa tạo
+                Bill createdBill = billDAO.findServicingByCardId(cardId);
+                BillJDialog dialog = new BillJDialog((Frame) this.getOwner(), true);
+                dialog.setBill(createdBill);
+                dialog.setVisible(true);
+
+                // Sau khi đóng, load lại danh sách cards (để update màu nền)
+                this.loadCards();
+            }
         });
         return btnCard;
     }
@@ -80,6 +125,7 @@ public class SalesJDialog extends javax.swing.JDialog implements SalesController
         pnlCard = new javax.swing.JPanel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        setTitle("Bán hàng");
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowOpened(java.awt.event.WindowEvent evt) {
                 formWindowOpened(evt);
@@ -94,14 +140,13 @@ public class SalesJDialog extends javax.swing.JDialog implements SalesController
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(pnlCard, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addContainerGap())
+                .addComponent(pnlCard, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(pnlCard, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(pnlCard, javax.swing.GroupLayout.DEFAULT_SIZE, 3, Short.MAX_VALUE)
                 .addContainerGap())
         );
 
@@ -110,7 +155,7 @@ public class SalesJDialog extends javax.swing.JDialog implements SalesController
 
     private void formWindowOpened(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowOpened
         // TODO add your handling code here:
-        this.open(); 
+        this.open();
     }//GEN-LAST:event_formWindowOpened
 
     /**

@@ -25,6 +25,9 @@ public class BillDetailDAOImpl implements BillDetailDAO {
     String findByBillIdSql = "SELECT bd.*, d.name AS drinkName FROM BillDetails bd JOIN Drinks d ON d.Id=bd.DrinkId WHERE bd.BillId=?";
     String findByDrinkIdSql = "SELECT bd.*, d.name AS drinkName FROM BillDetails bd JOIN Drinks d ON d.Id=bd.DrinkId WHERE bd.DrinkId=?";
 
+    // === THÊM MỚI: Tìm BillDetail theo billId và drinkId ===
+    String findByBillIdAndDrinkIdSql = "SELECT bd.*, d.name AS drinkName FROM BillDetails bd JOIN Drinks d ON d.Id=bd.DrinkId WHERE bd.BillId=? AND bd.DrinkId=?";
+
     @Override
     public BillDetail create(BillDetail entity) {
         XJdbc.executeUpdate(createSql,
@@ -76,6 +79,12 @@ public class BillDetailDAOImpl implements BillDetailDAO {
     @Override
     public List<BillDetail> findByDrinkId(String drinkId) {
         return select(findByDrinkIdSql, drinkId);
+    }
+
+    // === THÊM MỚI: Tìm BillDetail theo billId và drinkId ===
+    public BillDetail findByBillIdAndDrinkId(Long billId, String drinkId) {
+        List<BillDetail> list = select(findByBillIdAndDrinkIdSql, billId, drinkId);
+        return list.isEmpty() ? null : list.get(0);
     }
 
     // Helper method to map ResultSet to entity

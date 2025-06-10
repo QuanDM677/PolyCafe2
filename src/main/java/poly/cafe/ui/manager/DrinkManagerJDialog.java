@@ -83,6 +83,7 @@ public class DrinkManagerJDialog extends javax.swing.JDialog implements DrinkCon
         lblImage = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        setTitle("Đồ uống");
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowOpened(java.awt.event.WindowEvent evt) {
                 formWindowOpened(evt);
@@ -324,6 +325,7 @@ public class DrinkManagerJDialog extends javax.swing.JDialog implements DrinkCon
         jLabel7.setText("Trạng thái");
 
         buttonGroup1.add(rdoSan);
+        rdoSan.setSelected(true);
         rdoSan.setText("Sẵn sàng");
 
         buttonGroup1.add(rdoHet);
@@ -632,6 +634,12 @@ public class DrinkManagerJDialog extends javax.swing.JDialog implements DrinkCon
             XDialog.warning("Giá đồ uống phải lớn hơn 0!");
             return false;
         }
+        String imageName = lblImage.getToolTipText();
+        if (imageName == null || imageName.trim().isEmpty() || imageName.equals("product.png")) {
+            XDialog.warning("Vui lòng chọn ảnh cho đồ uống!");
+            lblImage.requestFocus();
+            return false;
+        }
         return true;
     }
 
@@ -676,12 +684,21 @@ public class DrinkManagerJDialog extends javax.swing.JDialog implements DrinkCon
                 }
             }
         }
-        if (drink.getImage() != null && !drink.getImage().isBlank()) {
-            lblImage.setToolTipText(drink.getImage());
-            XIcon.setIcon(lblImage, new File("images", drink.getImage()));
+        // SỬA ĐOẠN NÀY:
+        String imageName = (drink.getImage() != null && !drink.getImage().isBlank()) ? drink.getImage() : "catloveu.png";
+        lblImage.setToolTipText(imageName);
+
+        java.io.File imgFile = new java.io.File("images", imageName);
+        if (imgFile.exists()) {
+            lblImage.setIcon(new javax.swing.ImageIcon(imgFile.getAbsolutePath()));
         } else {
-            lblImage.setToolTipText("product.png");
-            XIcon.setIcon(lblImage, new File("images", "product.png"));
+            java.net.URL iconURL = getClass().getResource("/img/catloveu.png");
+            if (iconURL != null) {
+                lblImage.setIcon(new javax.swing.ImageIcon(iconURL));
+            } else {
+                // Nếu vẫn không có ảnh, set icon về null để tránh lỗi hiển thị
+                lblImage.setIcon(null);
+            }
         }
     }
 
